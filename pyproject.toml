@@ -3,7 +3,7 @@ requires = ["setuptools>=45", "wheel", "setuptools_scm[toml]>=6.2"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "claude-code-viewer"
+name = "ai-coder-viewer"
 description = "Beautiful web viewer for AI conversation history (Claude, Qwen, and more)"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -42,7 +42,7 @@ dependencies = [
     "markdown>=3.5.1,<4.0.0",
     "pygments>=2.16.1,<3.0.0",
 ]
-version = "1.1.0"
+version = "1.1.2"
 
 [project.urls]
 Homepage = "https://github.com/desis123/claude-code-viewer"
@@ -52,7 +52,7 @@ Repository = "https://github.com/desis123/claude-code-viewer.git"
 Changelog = "https://github.com/desis123/claude-code-viewer/blob/main/CHANGELOG.md"
 
 [project.scripts]
-claude-viewer = "claude_viewer.cli:main"
+aicode-viewer = "claude_viewer.cli:main"
 
 [tool.setuptools]
 packages = ["claude_viewer", "claude_viewer.utils"]

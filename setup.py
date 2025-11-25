@@ -13,8 +13,8 @@ def read_readme():
     return "Web viewer for Claude Code conversation history"
 
 setup(
-    name="claude-code-viewer",
-    version="1.1.0",
+    name="ai-coder-viewer",
+    version="1.1.2",
     description="Beautiful web viewer for AI conversation history (Claude, Qwen, and more)",
     long_description=read_readme(),
     long_description_content_type="text/markdown",
@@ -32,7 +32,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'claude-viewer=claude_viewer.cli:main',
+            'aicode-viewer=claude_viewer.cli:main',
         ],
     },
     install_requires=[

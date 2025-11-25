@@ -423,8 +423,8 @@ async def health_check():
     qwen_projects_exist = os.path.exists(qwen_path)
 
     return {
-        "status": "healthy",
-        "version": "1.0.0",
+        "status": "aicode-viewer healthy",
+        "version": "1.1.2",
         "claude_projects_path": claude_path,
         "qwen_projects_path": qwen_path,
         "claude_projects_directory_exists": claude_projects_exist,

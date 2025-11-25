@@ -2,7 +2,7 @@
 
 A beautiful, unified web interface for browsing and searching your AI conversation history across multiple platforms.
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.1.2-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-green.svg)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
 
@@ -23,23 +23,23 @@ A beautiful, unified web interface for browsing and searching your AI conversati
 ### Installation
 
 ```bash
-pip install claude-code-viewer
+pip install ai-coder-viewer
 ```
 
 ### Usage
 
 ```bash
 # Start with default settings (looks for ~/.claude/projects)
-claude-viewer
+aicode-viewer
 
 # Custom Claude projects path
-claude-viewer --projects-path /path/to/your/claude/projects
+aicode-viewer --projects-path /path/to/your/claude/projects
 
 # Custom port
-claude-viewer --port 8080
+aicode-viewer --port 8080
 
 # Accessible from other machines
-claude-viewer --host 0.0.0.0 --port 3000
+aicode-viewer --host 0.0.0.0 --port 3000
 ```
 
 Then open your browser to: `http://localhost:6300`
@@ -69,7 +69,7 @@ Search across all conversations and projects with instant results.
 ## 🛠️ Command Line Options
 
 ```bash
-claude-viewer --help
+aicode-viewer --help
 ```
 
 **Available options:**
@@ -96,7 +96,7 @@ AI conversation platforms store conversation history in JSONL files. This tool:
 git clone https://github.com/desis123/claude-code-viewer
 cd claude-code-viewer
 pip install -e .
-claude-viewer
+aicode-viewer
 ```
 
 ### Project Structure
@@ -153,7 +153,7 @@ Make sure Claude Code has been used and has created conversation files. The defa
 Ensure you have used Claude Code and it has generated conversation history. Try specifying a custom path with `--projects-path`.
 
 ### Port already in use
-Use a different port: `claude-viewer --port 8080`
+Use a different port: `aicode-viewer --port 8080`
 
 ## 📄 License
 

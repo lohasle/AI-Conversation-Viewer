@@ -65,3 +65,6 @@ Thumbs.db
 # Project specific
 test_data/
 *.log
+
+# PyPI credentials
+.pypirc

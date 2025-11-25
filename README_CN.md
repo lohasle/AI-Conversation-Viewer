@@ -23,23 +23,23 @@
 ### 安装
 
 ```bash
-pip install claude-code-viewer
+pip install ai-coder-viewer
 ```
 
 ### 使用方法
 
 ```bash
 # 使用默认设置启动（自动查找 ~/.claude/projects）
-claude-viewer
+aicode-viewer
 
 # 指定自定义 Claude 项目路径
-claude-viewer --projects-path /path/to/your/claude/projects
+aicode-viewer --projects-path /path/to/your/claude/projects
 
 # 自定义端口
-claude-viewer --port 8080
+aicode-viewer --port 8080
 
 # 允许其他机器访问
-claude-viewer --host 0.0.0.0 --port 3000
+aicode-viewer --host 0.0.0.0 --port 3000
 ```
 
 然后在浏览器中打开：`http://localhost:6300`
@@ -69,7 +69,7 @@ claude-viewer --host 0.0.0.0 --port 3000
 ## 🛠️ 命令行选项
 
 ```bash
-claude-viewer --help
+aicode-viewer --help
 ```
 
 **可用选项：**
@@ -96,7 +96,7 @@ AI 对话平台将对话历史存储在 JSONL 文件中。本工具：
 git clone https://github.com/desis123/claude-code-viewer
 cd claude-code-viewer
 pip install -e .
-claude-viewer
+aicode-viewer
 ```
 
 ### 项目结构
@@ -154,7 +154,7 @@ pip install -e ".[dev]"
 确保您已使用 Claude Code 并生成了对话历史。尝试使用 `--projects-path` 指定自定义路径。
 
 ### 端口已被占用
-使用其他端口：`claude-viewer --port 8080`
+使用其他端口：`aicode-viewer --port 8080`
 
 ## 📄 开源协议
 
