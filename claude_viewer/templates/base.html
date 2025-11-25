@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}AI Conversation Viewer{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        claude: {
+                            500: '#cc9b7a',
+                            600: '#b8845f',
+                        },
+                        qwen: {
+                            500: '#9333ea',
+                            600: '#7e22ce',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS (for legacy styles) -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+    <!-- Loading Indicator -->
+    <div id="page-loader" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 flex items-center space-x-3">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <span class="text-gray-700 dark:text-gray-200 font-medium">Loading...</span>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
+        <!-- Navigation Bar -->
+        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Brand -->
+                <div class="flex items-center space-x-4">
+                    <a href="/?view={{ current_view or 'qwen' }}" class="flex items-center space-x-2 text-gray-900 dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition">
+                        <i class="bi bi-chat-dots text-2xl"></i>
+                        <span class="font-bold text-xl hidden sm:inline">{{ t('app_name') }}</span>
+                    </a>
+                </div>
+
+                <!-- View Switcher -->
+                <div class="flex items-center space-x-2">
+                    <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 p-1 bg-gray-100 dark:bg-gray-700">
+                        <a href="/?view=qwen"
+                           class="px-4 py-2 rounded-md text-sm font-medium transition-all
+                                  {% if current_view == 'qwen' or not current_view %}
+                                  bg-qwen-500 text-white shadow-sm
+                                  {% else %}
+                                  text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white
+                                  {% endif %}">
+                            <i class="bi bi-moon-stars mr-1"></i>
+                            {{ t('qwen') }}
+                        </a>
+                        <a href="/?view=claude"
+                           class="px-4 py-2 rounded-md text-sm font-medium transition-all
+                                  {% if current_view == 'claude' %}
+                                  bg-claude-500 text-white shadow-sm
+                                  {% else %}
+                                  text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white
+                                  {% endif %}">
+                            <i class="bi bi-robot mr-1"></i>
+                            {{ t('claude') }}
+                        </a>
+                    </div>
+
+                    <!-- Status Link -->
+                    <a href="/health"
+                       class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                       title="{{ t('status') }}">
+                        <i class="bi bi-heart-pulse"></i>
+                        <span class="hidden lg:inline ml-1">{{ t('status') }}</span>
+                    </a>
+
+                    <!-- GitHub Link -->
+                    <a href="{{ github_url }}"
+                       target="_blank"
+                       rel="noopener noreferrer"
+                       class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                       title="GitHub">
+                        <i class="bi bi-github"></i>
+                        <span class="hidden lg:inline ml-1">GitHub</span>
+                    </a>
+
+                    <!-- Language Switcher -->
+                    <div class="relative inline-block text-left group">
+                        <button class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center"
+                                aria-label="Change language">
+                            <i class="bi bi-translate mr-1"></i>
+                            <span class="uppercase">{{ lang }}</span>
+                            <i class="bi bi-chevron-down ml-1 text-xs"></i>
+                        </button>
+                        <!-- Dropdown -->
+                        <div class="hidden group-hover:block absolute right-0 mt-2 w-32 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
+                            <div class="py-1">
+                                {% for available_lang in available_languages %}
+                                    <a href="/set-language/{{ available_lang }}"
+                                       class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 {% if lang == available_lang %}bg-gray-50 dark:bg-gray-900 font-semibold{% endif %}">
+                                        {% if available_lang == 'en' %}
+                                            English
+                                        {% elif available_lang == 'zh' %}
+                                            中文
+                                        {% endif %}
+                                    </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Theme Toggle -->
+                    <button id="theme-toggle"
+                            class="px-3 py-2 rounded-md text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition"
+                            aria-label="Toggle theme">
+                        <i class="bi bi-sun-fill dark:hidden"></i>
+                        <i class="bi bi-moon-fill hidden dark:inline"></i>
+                    </button>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Subtitle Banner -->
+        <div class="bg-gradient-to-r from-primary-50 to-primary-100 dark:from-gray-700 dark:to-gray-600 border-t border-primary-200 dark:border-gray-600">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                <p class="text-sm text-center text-gray-700 dark:text-gray-200">
+                    <i class="bi bi-search mr-1"></i>
+                    {{ t('browse_search') }}
+                    <span class="font-semibold
+                        {% if current_view == 'claude' %}
+                        text-claude-600 dark:text-claude-500
+                        {% else %}
+                        text-qwen-600 dark:text-qwen-500
+                        {% endif %}">
+                        {% if current_view == 'claude' %}
+                            {{ t('claude') }}
+                        {% else %}
+                            {{ t('qwen') }}
+                        {% endif %}
+                    </span>
+                    {{ t('conversation_history') }}
+                </p>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 min-h-screen">
+        {% block breadcrumb %}{% endblock %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-12">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+            <div class="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
+                <div class="flex items-center text-gray-600 dark:text-gray-400">
+                    <i class="bi bi-code-slash mr-2"></i>
+                    <span class="text-sm">{{ t('app_name') }}</span>
+                </div>
+                <div class="text-sm text-gray-500 dark:text-gray-500">
+                    {{ t('built_with') }}
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', path='/js/app.js') }}"></script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

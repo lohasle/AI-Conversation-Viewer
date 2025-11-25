@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}Search Results - AI Conversation Viewer{% endblock %}
+
+{% block breadcrumb %}
+<nav class="mb-6" aria-label="breadcrumb">
+    <ol class="flex items-center space-x-2 text-sm">
+        <li>
+            <a href="/?view={{ current_view or 'qwen' }}"
+               class="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition">
+                <i class="bi bi-house mr-1"></i>
+                Projects
+            </a>
+        </li>
+        <li class="text-gray-400 dark:text-gray-600">
+            <i class="bi bi-chevron-right"></i>
+        </li>
+        <li class="text-gray-700 dark:text-gray-300 font-medium">
+            Search Results
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Search Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
+            <i class="bi bi-search mr-3 text-primary-600 dark:text-primary-400"></i>
+            Search Results
+        </h1>
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2">
+            <span class="text-sm text-gray-600 dark:text-gray-400">
+                <span class="font-semibold text-gray-900 dark:text-white">{{ total_results }}</span>
+                result{{ 's' if total_results != 1 else '' }} for
+                <span class="font-semibold text-primary-600 dark:text-primary-400">"{{ query }}"</span>
+            </span>
+        </div>
+    </div>
+
+    <!-- Search Form -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <form method="GET" action="/search">
+            <input type="hidden" name="view" value="{{ current_view or 'qwen' }}" />
+            <div class="flex gap-2">
+                <div class="relative flex-1">
+                    <i class="bi bi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text"
+                           name="q"
+                           value="{{ query }}"
+                           class="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                           placeholder="Search in all conversation content...">
+                </div>
+                <button type="submit"
+                        class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors flex items-center whitespace-nowrap">
+                    <i class="bi bi-search mr-2"></i>
+                    Search
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Search Results -->
+    {% if results %}
+        <div class="space-y-4">
+            {% for result in results %}
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border-l-4 border-primary-500 border-r border-r-gray-200 dark:border-r-gray-700 border-t border-t-gray-200 dark:border-t-gray-700 border-b border-b-gray-200 dark:border-b-gray-700 overflow-hidden hover:shadow-lg transition-all">
+                    <div class="p-6">
+                        <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+                            <div class="flex-1 min-w-0 space-y-4">
+                                <!-- Project Title -->
+                                <div>
+                                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center mb-2">
+                                        <i class="bi bi-folder2-open mr-2 text-primary-600 dark:text-primary-400"></i>
+                                        <span class="truncate" title="{{ result.project.display_name }}">
+                                            {{ result.project.display_name }}
+                                        </span>
+                                    </h3>
+                                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-600 dark:text-gray-400">
+                                        <span class="flex items-center font-mono">
+                                            <i class="bi bi-hash mr-1"></i>
+                                            {{ result.session.id[:8] }}...
+                                        </span>
+                                        <span class="flex items-center">
+                                            <i class="bi bi-check-circle mr-1 text-green-600 dark:text-green-400"></i>
+                                            {{ result.matching_messages_count }} match{{ 'es' if result.matching_messages_count != 1 else '' }}
+                                        </span>
+                                        <span class="flex items-center">
+                                            <i class="bi bi-clock mr-1"></i>
+                                            {{ result.session.modified[:16] }}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Matching Messages Preview -->
+                                <div class="space-y-2">
+                                    {% for message in result.first_few_messages %}
+                                        <div class="bg-gradient-to-r from-primary-50 to-transparent dark:from-primary-900/20 dark:to-transparent border-l-2 border-primary-400 dark:border-primary-600 rounded-r-lg p-3">
+                                            <div class="flex items-center mb-2">
+                                                <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium
+                                                    {% if message.display_type == 'User' %}
+                                                        bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300
+                                                    {% elif message.display_type == 'Assistant' %}
+                                                        bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300
+                                                    {% else %}
+                                                        bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300
+                                                    {% endif %}">
+                                                    {% if message.display_type == 'User' %}
+                                                        <i class="bi bi-person-circle mr-1"></i>
+                                                    {% elif message.display_type == 'Assistant' %}
+                                                        <i class="bi bi-robot mr-1"></i>
+                                                    {% else %}
+                                                        <i class="bi bi-chat mr-1"></i>
+                                                    {% endif %}
+                                                    {{ message.display_type }}
+                                                </span>
+                                            </div>
+                                            <div class="text-sm text-gray-700 dark:text-gray-300 line-clamp-3">
+                                                {{ message.content[:300] }}{% if message.content|length > 300 %}...{% endif %}
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <!-- View Button -->
+                            <div class="flex sm:flex-col gap-2">
+                                <a href="/conversation/{{ result.project.name }}/{{ result.session.id }}?view={{ current_view or 'qwen' }}&search={{ query }}"
+                                   class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
+                                    <i class="bi bi-eye mr-2"></i>
+                                    View Session
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <!-- Empty State -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+            <div class="max-w-md mx-auto space-y-4">
+                <div class="flex justify-center">
+                    <div class="bg-gray-100 dark:bg-gray-900 p-6 rounded-full">
+                        <i class="bi bi-search text-6xl text-gray-400 dark:text-gray-600"></i>
+                    </div>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">No Results Found</h3>
+                <p class="text-gray-600 dark:text-gray-400">
+                    No conversations contain <span class="font-semibold">"{{ query }}"</span>.
+                    <br>
+                    Try a different search term or check your spelling.
+                </p>
+                <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
+                    <a href="/?view={{ current_view or 'qwen' }}"
+                       class="inline-flex items-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
+                        <i class="bi bi-house mr-2"></i>
+                        Back to Projects
+                    </a>
+                    <a href="/search?view={{ current_view or 'qwen' }}"
+                       class="inline-flex items-center px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors">
+                        <i class="bi bi-search mr-2"></i>
+                        New Search
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

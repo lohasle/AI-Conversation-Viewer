@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Projects - AI Conversation Viewer{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
+            <i class="bi bi-clock-history mr-3"></i>
+            Recent Sessions
+        </h1>
+        <div class="text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-lg">
+            <i class="bi bi-folder mr-1"></i>
+            {{ projects|length }} project{{ 's' if projects|length != 1 else '' }} found
+        </div>
+    </div>
+
+    {% if projects %}
+        <!-- Global Search -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <form method="GET" action="/search" class="space-y-3">
+                <input type="hidden" name="view" value="{{ current_view or 'qwen' }}" />
+                <div class="flex gap-2">
+                    <div class="relative flex-1">
+                        <i class="bi bi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text"
+                               name="q"
+                               class="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                               placeholder="Search in all conversation content...">
+                    </div>
+                    <button type="submit"
+                            class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors flex items-center">
+                        <i class="bi bi-search mr-2"></i>
+                        Search
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600 dark:text-gray-400">
+                    <i class="bi bi-info-circle mr-1"></i>
+                    Search across all sessions in all {{ current_view or 'qwen' }} projects
+                </p>
+            </form>
+        </div>
+
+        <!-- Quick Stats -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Projects</p>
+                        <p class="text-3xl font-bold text-primary-600 dark:text-primary-400">{{ projects|length }}</p>
+                    </div>
+                    <div class="bg-primary-100 dark:bg-primary-900 p-3 rounded-lg">
+                        <i class="bi bi-folder text-2xl text-primary-600 dark:text-primary-400"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Sessions</p>
+                        <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ projects|sum(attribute='session_count') }}</p>
+                    </div>
+                    <div class="bg-green-100 dark:bg-green-900 p-3 rounded-lg">
+                        <i class="bi bi-chat-dots text-2xl text-green-600 dark:text-green-400"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Avg per Project</p>
+                        <p class="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                            {{ (projects|sum(attribute='session_count') / projects|length)|round(1) if projects|length > 0 else 0 }}
+                        </p>
+                    </div>
+                    <div class="bg-amber-100 dark:bg-amber-900 p-3 rounded-lg">
+                        <i class="bi bi-bar-chart text-2xl text-amber-600 dark:text-amber-400"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">
+                            {% if current_view == 'claude' %}
+                                Claude
+                            {% else %}
+                                Qwen
+                            {% endif %} View
+                        </p>
+                        <p class="text-3xl font-bold
+                            {% if current_view == 'claude' %}
+                                text-claude-600 dark:text-claude-500
+                            {% else %}
+                                text-qwen-600 dark:text-qwen-500
+                            {% endif %}">
+                            Active
+                        </p>
+                    </div>
+                    <div class="
+                        {% if current_view == 'claude' %}
+                            bg-claude-100 dark:bg-claude-900
+                        {% else %}
+                            bg-purple-100 dark:bg-purple-900
+                        {% endif %} p-3 rounded-lg">
+                        <i class="bi bi-{% if current_view == 'claude' %}robot{% else %}moon-stars{% endif %} text-2xl
+                            {% if current_view == 'claude' %}
+                                text-claude-600 dark:text-claude-500
+                            {% else %}
+                                text-qwen-600 dark:text-qwen-500
+                            {% endif %}"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Projects grouped by date -->
+        {% for date, date_projects in grouped_projects.items() %}
+            <div class="space-y-4">
+                <!-- Date Header -->
+                <div class="flex items-center space-x-3">
+                    <i class="bi bi-calendar-event text-xl text-primary-600 dark:text-primary-400"></i>
+                    <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ date }}</h2>
+                    <div class="flex-1 h-px bg-gradient-to-r from-primary-200 to-transparent dark:from-primary-800"></div>
+                </div>
+
+                <!-- Project Cards Grid -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {% for project in date_projects %}
+                        <div class="group bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200 overflow-hidden">
+                            <div class="p-6 space-y-4">
+                                <!-- Project Header -->
+                                <div class="flex items-start justify-between">
+                                    <div class="flex-1 min-w-0">
+                                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2 truncate flex items-center">
+                                            <i class="bi bi-folder2-open mr-2 text-primary-600 dark:text-primary-400 flex-shrink-0"></i>
+                                            <span class="truncate">{{ project.display_name }}</span>
+                                        </h3>
+                                        <div class="flex items-center text-sm text-gray-600 dark:text-gray-400 space-x-3">
+                                            <span class="flex items-center">
+                                                <i class="bi bi-clock mr-1"></i>
+                                                {{ project.modified_time_str.split(' ')[1][:5] }}
+                                            </span>
+                                            <span class="flex items-center">
+                                                <i class="bi bi-chat-dots mr-1"></i>
+                                                {{ project.session_count }} session{{ 's' if project.session_count != 1 else '' }}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Project ID Badge -->
+                                <div class="flex items-center justify-between pt-2 border-t border-gray-200 dark:border-gray-700">
+                                    <div class="flex items-center text-xs text-gray-500 dark:text-gray-500 font-mono bg-gray-100 dark:bg-gray-900 px-2 py-1 rounded">
+                                        <i class="bi bi-hash mr-1"></i>
+                                        {{ project.name[:8] }}...
+                                    </div>
+                                    <a href="/project/{{ project.name }}?view={{ current_view or 'qwen' }}"
+                                       class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors group-hover:bg-primary-700">
+                                        View
+                                        <i class="bi bi-arrow-right ml-2"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endfor %}
+    {% else %}
+        <!-- Empty State -->
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+            <div class="max-w-md mx-auto space-y-4">
+                <div class="flex justify-center">
+                    <div class="bg-gray-100 dark:bg-gray-900 p-6 rounded-full">
+                        <i class="bi bi-clock-history text-6xl text-gray-400 dark:text-gray-600"></i>
+                    </div>
+                </div>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">No Sessions Found</h3>
+                <p class="text-gray-600 dark:text-gray-400">
+                    Make sure {{ current_view or 'Qwen' }} has been used and projects exist in:
+                </p>
+                <div class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 font-mono text-sm text-gray-700 dark:text-gray-300">
+                    {% if current_view == 'claude' %}
+                        ~/.claude/projects/
+                    {% else %}
+                        ~/.qwen/tmp/
+                    {% endif %}
+                </div>
+                <a href="/health"
+                   class="inline-flex items-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors mt-4">
+                    <i class="bi bi-heart-pulse mr-2"></i>
+                    Check System Status
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

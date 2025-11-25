@@ -1,0 +1,7 @@
+include README.md
+include LICENSE
+include requirements.txt
+recursive-include static *
+recursive-include templates *
+recursive-include claude_viewer/static *
+recursive-include claude_viewer/templates *
