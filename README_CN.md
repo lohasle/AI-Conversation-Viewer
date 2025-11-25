@@ -188,4 +188,4 @@ Apache 2.0 License - 详见 [LICENSE](LICENSE) 文件。
 
 **用 ❤️ 为 AI 开发者社区打造**
 
-[问题反馈](https://github.com/desis123/claude-code-viewer/issues) • [功能建议](https://github.com/desis123/claude-code-viewer/issues/new) • [English Docs](README.md)
+[问题反馈](https://github.com/lohasle/AI-Conversation-Viewer/issues) • [功能建议](https://github.com/lohasle/AI-Conversation-Viewer/issues/new)  • [English Docs](README.md)

@@ -187,4 +187,4 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 **Made with ❤️ for the AI development community**
 
-[Report Issues](https://github.com/desis123/claude-code-viewer/issues) • [Feature Requests](https://github.com/desis123/claude-code-viewer/issues/new) • [中文文档](README_CN.md)
+[Report Issues](https://github.com/lohasle/AI-Conversation-Viewer/issues) • [Feature Requests](https://github.com/lohasle/AI-Conversation-Viewer/issues/new)  • [中文文档](README_CN.md)
