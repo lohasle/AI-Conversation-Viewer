@@ -44,7 +44,7 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 
 # Configuration
-GITHUB_URL = os.environ.get("GITHUB_REPO_URL", "https://github.com/yourusername/claude-code-viewer")
+GITHUB_URL = os.environ.get("GITHUB_REPO_URL", "https://github.com/lohasle/AI-Conversation-Viewer")
 
 # Helper functions
 def get_language_from_cookie(request: Request) -> str:

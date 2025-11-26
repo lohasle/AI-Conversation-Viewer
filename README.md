@@ -93,8 +93,8 @@ AI conversation platforms store conversation history in JSONL files. This tool:
 ### Local Development
 
 ```bash
-git clone https://github.com/desis123/claude-code-viewer
-cd claude-code-viewer
+git clone https://github.com/lohasle/AI-Conversation-Viewer
+cd AI-Conversation-Viewer
 pip install -e .
 aicode-viewer
 ```

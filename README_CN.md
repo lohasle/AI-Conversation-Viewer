@@ -93,8 +93,8 @@ AI 对话平台将对话历史存储在 JSONL 文件中。本工具：
 ### 本地开发
 
 ```bash
-git clone https://github.com/desis123/claude-code-viewer
-cd claude-code-viewer
+git clone https://github.com/lohasle/AI-Conversation-Viewer
+cd AI-Conversation-Viewer
 pip install -e .
 aicode-viewer
 ```

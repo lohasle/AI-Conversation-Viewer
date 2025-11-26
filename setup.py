@@ -14,13 +14,13 @@ def read_readme():
 
 setup(
     name="ai-coder-viewer",
-    version="1.1.2",
+    version="1.1.3",
     description="Beautiful web viewer for AI conversation history (Claude, Qwen, and more)",
     long_description=read_readme(),
     long_description_content_type="text/markdown",
     author="AI Development Community",
-    author_email="your-email@example.com",  # Update this
-    url="https://github.com/desis123/claude-code-viewer",  # Update this
+    author_email="days365le@gmail.com",  # Update this
+    url="https://github.com/lohasle/AI-Conversation-Viewer",  # Update this
     packages=find_packages(),
     include_package_data=True,
     package_data={
@@ -65,8 +65,8 @@ setup(
     ],
     keywords="claude ai conversation viewer web interface fastapi",
     project_urls={
-        "Bug Reports": "https://github.com/desis123/claude-code-viewer/issues",
-        "Source": "https://github.com/desis123/claude-code-viewer",
-        "Documentation": "https://github.com/desis123/claude-code-viewer#readme",
+        "Bug Reports": "https://github.com/lohasle/AI-Conversation-Viewer/issues",
+        "Source": "https://github.com/lohasle/AI-Conversation-Viewer",
+        "Documentation": "https://github.com/lohasle/AI-Conversation-Viewer#readme",
     },
 )

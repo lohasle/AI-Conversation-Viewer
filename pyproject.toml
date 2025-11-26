@@ -45,11 +45,11 @@ dependencies = [
 version = "1.1.2"
 
 [project.urls]
-Homepage = "https://github.com/desis123/claude-code-viewer"
-Documentation = "https://github.com/desis123/claude-code-viewer#readme"
-Repository = "https://github.com/desis123/claude-code-viewer.git"
-"Bug Reports" = "https://github.com/desis123/claude-code-viewer/issues"
-Changelog = "https://github.com/desis123/claude-code-viewer/blob/main/CHANGELOG.md"
+Homepage = "https://github.com/lohasle/AI-Conversation-Viewer"
+Documentation = "https://github.com/lohasle/AI-Conversation-Viewer#readme"
+Repository = "https://github.com/lohasle/AI-Conversation-Viewer.git"
+"Bug Reports" = "https://github.com/lohasle/AI-Conversation-Viewer/issues"
+Changelog = "https://github.com/lohasle/AI-Conversation-Viewer/blob/main/CHANGELOG.md"
 
 [project.scripts]
 aicode-viewer = "claude_viewer.cli:main"
