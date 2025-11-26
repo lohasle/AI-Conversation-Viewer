@@ -63,7 +63,7 @@ setup(
         "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
         "Environment :: Web Environment",
     ],
-    keywords="claude ai conversation viewer web interface fastapi",
+    keywords="qwen claude ai conversation viewer web interface fastapi",
     project_urls={
         "Bug Reports": "https://github.com/lohasle/AI-Conversation-Viewer/issues",
         "Source": "https://github.com/lohasle/AI-Conversation-Viewer",
