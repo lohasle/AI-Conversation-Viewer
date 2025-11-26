@@ -2,7 +2,7 @@
 
 A beautiful, unified web interface for browsing and searching your AI conversation history across multiple platforms.
 
-![Version](https://img.shields.io/badge/version-1.1.2-blue.svg)
+![Version](https://img.shields.io/badge/version-1.1.3-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-green.svg)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
 
