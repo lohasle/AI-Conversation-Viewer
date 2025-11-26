@@ -88,6 +88,12 @@
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">
                             {% if current_view == 'claude' %}
                                 Claude
+                            {% elif current_view == 'cursor' %}
+                                Cursor
+                            {% elif current_view == 'trae' %}
+                                Trae
+                            {% elif current_view == 'kiro' %}
+                                Kiro
                             {% else %}
                                 Qwen
                             {% endif %} View
@@ -95,6 +101,8 @@
                         <p class="text-3xl font-bold
                             {% if current_view == 'claude' %}
                                 text-claude-600 dark:text-claude-500
+                            {% elif current_view in ['cursor','trae','kiro'] %}
+                                text-primary-600 dark:text-primary-400
                             {% else %}
                                 text-qwen-600 dark:text-qwen-500
                             {% endif %}">
@@ -104,12 +112,27 @@
                     <div class="
                         {% if current_view == 'claude' %}
                             bg-claude-100 dark:bg-claude-900
+                        {% elif current_view in ['cursor','trae','kiro'] %}
+                            bg-primary-100 dark:bg-primary-900
                         {% else %}
                             bg-purple-100 dark:bg-purple-900
                         {% endif %} p-3 rounded-lg">
-                        <i class="bi bi-{% if current_view == 'claude' %}robot{% else %}moon-stars{% endif %} text-2xl
+                        <i class="bi 
+                            {% if current_view == 'claude' %}
+                                bi-robot
+                            {% elif current_view == 'cursor' %}
+                                bi-cursor
+                            {% elif current_view == 'trae' %}
+                                bi-terminal
+                            {% elif current_view == 'kiro' %}
+                                bi-hdd-network
+                            {% else %}
+                                bi-moon-stars
+                            {% endif %} text-2xl
                             {% if current_view == 'claude' %}
                                 text-claude-600 dark:text-claude-500
+                            {% elif current_view in ['cursor','trae','kiro'] %}
+                                text-primary-600 dark:text-primary-400
                             {% else %}
                                 text-qwen-600 dark:text-qwen-500
                             {% endif %}"></i>
@@ -187,6 +210,12 @@
                 <div class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 font-mono text-sm text-gray-700 dark:text-gray-300">
                     {% if current_view == 'claude' %}
                         ~/.claude/projects/
+                    {% elif current_view == 'cursor' %}
+                        ~/Library/Application Support/Cursor/User/workspaceStorage/
+                    {% elif current_view == 'trae' %}
+                        ~/Library/Application Support/Trae/User/workspaceStorage/
+                    {% elif current_view == 'kiro' %}
+                        ~/Library/Application Support/Kiro/User/workspaceStorage/
                     {% else %}
                         ~/.qwen/tmp/
                     {% endif %}

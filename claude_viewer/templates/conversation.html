@@ -157,7 +157,7 @@
                                         <span>User</span>
                                     {% elif message.role == 'assistant' or message.display_type == 'Assistant' %}
                                         <i class="bi bi-robot text-xl"></i>
-                                        <span>{% if current_view == 'claude' %}Claude{% else %}Qwen{% endif %}</span>
+                                        <span>{% if current_view == 'claude' %}Claude{% elif current_view == 'cursor' %}Cursor{% elif current_view == 'trae' %}Trae{% elif current_view == 'kiro' %}Kiro{% else %}Qwen{% endif %}</span>
                                     {% elif message.type == 'summary' %}
                                         <i class="bi bi-journal-text text-xl"></i>
                                         <span>Summary</span>

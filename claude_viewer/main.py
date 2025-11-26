@@ -93,6 +93,21 @@ def get_parser(parser_type: str = "qwen"):
             # Fallback to default
             qwen_path = str(Path.home() / ".qwen" / "tmp")
         return JSONLParser(qwen_path, parser_type="qwen")
+    elif parser_type == "cursor":
+        cursor_path = os.environ.get("CURSOR_WORKSPACE_STORAGE_PATH")
+        if not cursor_path:
+            cursor_path = str(Path.home() / "Library" / "Application Support" / "Cursor" / "User" / "workspaceStorage")
+        return JSONLParser(cursor_path, parser_type="cursor")
+    elif parser_type == "trae":
+        trae_path = os.environ.get("TRAE_WORKSPACE_STORAGE_PATH")
+        if not trae_path:
+            trae_path = str(Path.home() / "Library" / "Application Support" / "Trae" / "User" / "workspaceStorage")
+        return JSONLParser(trae_path, parser_type="trae")
+    elif parser_type == "kiro":
+        kiro_path = os.environ.get("KIRO_WORKSPACE_STORAGE_PATH")
+        if not kiro_path:
+            kiro_path = str(Path.home() / "Library" / "Application Support" / "Kiro" / "User" / "workspaceStorage")
+        return JSONLParser(kiro_path, parser_type="kiro")
     else:
         raise ValueError(f"Unsupported parser type: {parser_type}")
 
@@ -225,7 +240,7 @@ async def set_language(lang: str, request: Request):
     return response
 
 @app.get("/", response_class=HTMLResponse)
-async def root(request: Request, view: str = Query("qwen", regex="^(qwen|claude)$")):
+async def root(request: Request, view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
     """Main page showing projects based on selected view (Qwen or Claude)"""
     parser = get_parser(view)
     projects = parser.get_projects()
@@ -252,7 +267,7 @@ async def root(request: Request, view: str = Query("qwen", regex="^(qwen|claude)
     return templates.TemplateResponse("index.html", add_template_context(request, context))
 
 @app.get("/api/projects", response_model=List[Project])
-async def get_projects(view: str = Query("qwen", regex="^(qwen|claude)$")):
+async def get_projects(view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
     """API endpoint to get projects based on selected view (Qwen or Claude)"""
     parser = get_parser(view)
     projects = parser.get_projects()
@@ -264,7 +279,7 @@ async def get_projects(view: str = Query("qwen", regex="^(qwen|claude)$")):
     return projects
 
 @app.get("/project/{project_name}", response_class=HTMLResponse)
-async def project_view(request: Request, project_name: str, view: str = Query("qwen", regex="^(qwen|claude)$")):
+async def project_view(request: Request, project_name: str, view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
     """Project page showing all sessions"""
     parser = get_parser(view)
     sessions = parser.get_sessions(project_name)
@@ -283,7 +298,7 @@ async def project_view(request: Request, project_name: str, view: str = Query("q
     return templates.TemplateResponse("project_view.html", add_template_context(request, context))
 
 @app.get("/api/sessions/{project_name}", response_model=List[Session])
-async def get_sessions(project_name: str, view: str = Query("qwen", regex="^(qwen|claude)$")):
+async def get_sessions(project_name: str, view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
     """API endpoint to get sessions for a project based on selected view"""
     parser = get_parser(view)
     sessions = parser.get_sessions(project_name)
@@ -302,7 +317,7 @@ async def conversation_view(
     per_page: int = Query(50, le=200, ge=10),
     search: Optional[str] = Query(None),
     message_type: Optional[str] = Query(None),
-    view: str = Query("qwen", regex="^(qwen|claude)$")
+    view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")
 ):
     """Conversation viewer page"""
     parser = get_parser(view)
@@ -315,8 +330,7 @@ async def conversation_view(
         project_name, session_id, page, per_page, search, message_type
     )
 
-    if not conversation["messages"] and page == 1:
-        raise HTTPException(status_code=404, detail="Conversation not found")
+    
 
     # Render markdown content and highlight search terms
     for message in conversation["messages"]:
@@ -349,7 +363,7 @@ async def get_conversation(
     per_page: int = Query(50, le=200, ge=10),
     search: Optional[str] = Query(None),
     message_type: Optional[str] = Query(None),
-    view: str = Query("qwen", regex="^(qwen|claude)$")
+    view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")
 ):
     """API endpoint to get conversation data based on selected view"""
     parser = get_parser(view)
@@ -365,7 +379,7 @@ async def get_conversation(
     return ConversationResponse(**conversation)
 
 @app.get("/search", response_class=HTMLResponse)
-async def search_view(request: Request, q: str = Query(..., min_length=1), view: str = Query("qwen", regex="^(qwen|claude)$")):
+async def search_view(request: Request, q: str = Query(..., min_length=1), view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
     """Search across all sessions in all projects based on selected view"""
     parser = get_parser(view)
 
@@ -415,22 +429,74 @@ async def health_check():
     """Health check endpoint"""
     claude_parser = get_parser("claude")
     qwen_parser = get_parser("qwen")
+    cursor_parser = get_parser("cursor")
+    trae_parser = get_parser("trae")
+    kiro_parser = get_parser("kiro")
 
     claude_path = os.environ.get("CLAUDE_PROJECTS_PATH", str(Path.home() / ".claude" / "projects"))
     qwen_path = os.environ.get("QWEN_PROJECTS_PATH", str(Path.home() / ".qwen" / "tmp"))
+    cursor_path = os.environ.get("CURSOR_WORKSPACE_STORAGE_PATH", str(Path.home() / "Library" / "Application Support" / "Cursor" / "User" / "workspaceStorage"))
+    trae_path = os.environ.get("TRAE_WORKSPACE_STORAGE_PATH", str(Path.home() / "Library" / "Application Support" / "Trae" / "User" / "workspaceStorage"))
+    kiro_path = os.environ.get("KIRO_WORKSPACE_STORAGE_PATH", str(Path.home() / "Library" / "Application Support" / "Kiro" / "User" / "workspaceStorage"))
 
     claude_projects_exist = os.path.exists(claude_path)
     qwen_projects_exist = os.path.exists(qwen_path)
+    cursor_projects_exist = os.path.exists(cursor_path)
+    trae_projects_exist = os.path.exists(trae_path)
+    kiro_projects_exist = os.path.exists(kiro_path)
+
+    trae_key_samples = []
+    kiro_key_samples = []
+    if trae_projects_exist:
+        import sqlite3
+        base = trae_path
+        for pr in trae_parser.get_projects()[:5]:
+            state_db = os.path.join(base, pr["name"], "state.vscdb")
+            if os.path.exists(state_db):
+                try:
+                    conn = sqlite3.connect(state_db)
+                    cur = conn.cursor()
+                    key = trae_parser._find_state_key(cur)
+                    conn.close()
+                except Exception:
+                    key = None
+                trae_key_samples.append({"project": pr["display_name"], "key": key})
+    if kiro_projects_exist:
+        import sqlite3
+        base = kiro_path
+        for pr in kiro_parser.get_projects()[:5]:
+            state_db = os.path.join(base, pr["name"], "state.vscdb")
+            if os.path.exists(state_db):
+                try:
+                    conn = sqlite3.connect(state_db)
+                    cur = conn.cursor()
+                    key = kiro_parser._find_state_key(cur)
+                    conn.close()
+                except Exception:
+                    key = None
+                kiro_key_samples.append({"project": pr["display_name"], "key": key})
 
     return {
         "status": "aicode-viewer healthy",
         "version": "1.1.2",
         "claude_projects_path": claude_path,
         "qwen_projects_path": qwen_path,
+        "cursor_workspace_path": cursor_path,
         "claude_projects_directory_exists": claude_projects_exist,
         "qwen_projects_directory_exists": qwen_projects_exist,
+        "cursor_workspace_directory_exists": cursor_projects_exist,
+        "trae_workspace_directory_exists": trae_projects_exist,
+        "kiro_workspace_directory_exists": kiro_projects_exist,
         "claude_projects_count": len(claude_parser.get_projects()) if claude_projects_exist else 0,
         "qwen_projects_count": len(qwen_parser.get_projects()) if qwen_projects_exist else 0,
+        "cursor_projects_count": len(cursor_parser.get_projects()) if cursor_projects_exist else 0,
+        "trae_projects_count": len(trae_parser.get_projects()) if trae_projects_exist else 0,
+        "kiro_projects_count": len(kiro_parser.get_projects()) if kiro_projects_exist else 0,
         "total_projects_count": (len(claude_parser.get_projects()) if claude_projects_exist else 0) +
-                                (len(qwen_parser.get_projects()) if qwen_projects_exist else 0)
+                                (len(qwen_parser.get_projects()) if qwen_projects_exist else 0) +
+                                (len(cursor_parser.get_projects()) if cursor_projects_exist else 0) +
+                                (len(trae_parser.get_projects()) if trae_projects_exist else 0) +
+                                (len(kiro_parser.get_projects()) if kiro_projects_exist else 0),
+        "trae_key_samples": trae_key_samples,
+        "kiro_key_samples": kiro_key_samples
     }

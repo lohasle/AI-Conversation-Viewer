@@ -20,6 +20,15 @@ class JSONLParser:
             self.projects_path = projects_path or os.path.expanduser("~/.claude/projects")
         elif parser_type == "qwen":
             self.projects_path = projects_path or os.path.expanduser("~/.qwen/tmp")
+        elif parser_type == "cursor":
+            default_path = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "Cursor", "User", "workspaceStorage")
+            self.projects_path = projects_path or os.environ.get("CURSOR_WORKSPACE_STORAGE_PATH", default_path)
+        elif parser_type == "trae":
+            default_path = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "Trae", "User", "workspaceStorage")
+            self.projects_path = projects_path or os.environ.get("TRAE_WORKSPACE_STORAGE_PATH", default_path)
+        elif parser_type == "kiro":
+            default_path = os.path.join(os.path.expanduser("~"), "Library", "Application Support", "Kiro", "User", "workspaceStorage")
+            self.projects_path = projects_path or os.environ.get("KIRO_WORKSPACE_STORAGE_PATH", default_path)
         else:
             raise ValueError(f"Unsupported parser type: {parser_type}")
     
@@ -34,27 +43,33 @@ class JSONLParser:
         for project_dir in os.listdir(self.projects_path):
             project_path = os.path.join(self.projects_path, project_dir)
             if os.path.isdir(project_path):
-                # Get files based on parser type
                 if self.parser_type == "claude":
-                    # Get JSONL files in this project
                     session_files = [f for f in os.listdir(project_path) if f.endswith('.jsonl')]
                 elif self.parser_type == "qwen":
-                    # Get chats directory in this project
                     chats_path = os.path.join(project_path, 'chats')
                     if os.path.exists(chats_path):
                         session_files = [f for f in os.listdir(chats_path) if f.endswith('.json')]
                     else:
                         session_files = []
-                else:
-                    session_files = []
-
+                elif self.parser_type in ["cursor", "trae", "kiro"]:
+                    workspace_json = os.path.join(project_path, 'workspace.json')
+                    state_db = os.path.join(project_path, 'state.vscdb')
+                    if os.path.exists(state_db):
+                        session_files = ['state.vscdb']
+                    else:
+                        session_files = []
+                
                 # Get the modification time of the project directory
                 mtime = os.path.getmtime(project_path)
                 mod_time = datetime.fromtimestamp(mtime).strftime('%Y-%m-%d %H:%M:%S')
 
+                display_name = self._format_project_name(project_dir)
+                if self.parser_type == "cursor":
+                    # Extra safety: recompute display name from workspace.json directly
+                    display_name = self._format_cursor_display_name(project_dir) or display_name
                 projects.append({
                     "name": project_dir,
-                    "display_name": self._format_project_name(project_dir),  # Use formatted display name
+                    "display_name": display_name,
                     "path": project_path,
                     "session_count": len(session_files),
                     "sessions": session_files,
@@ -112,6 +127,22 @@ class JSONLParser:
                             "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
                             "message_count": message_count
                         })
+        elif self.parser_type in ["cursor", "trae", "kiro"]:
+            state_db = os.path.join(project_path, 'state.vscdb')
+            if os.path.exists(state_db):
+                try:
+                    message_count = self._cursor_count_prompts(state_db)
+                except Exception:
+                    message_count = 0
+                file_stats = os.stat(state_db)
+                sessions.append({
+                    "id": "aiService.prompts",
+                    "filename": "state.vscdb",
+                    "path": state_db,
+                    "size": file_stats.st_size,
+                    "modified": datetime.fromtimestamp(file_stats.st_mtime).isoformat(),
+                    "message_count": message_count
+                })
 
         return sorted(sessions, key=lambda x: x["modified"], reverse=True)
     
@@ -131,6 +162,9 @@ class JSONLParser:
         elif self.parser_type == "qwen":
             project_path = os.path.join(self.projects_path, project_name)
             session_path = os.path.join(project_path, 'chats', f"{session_id}.json")
+        elif self.parser_type in ["cursor", "trae", "kiro"]:
+            project_path = os.path.join(self.projects_path, project_name)
+            session_path = os.path.join(project_path, 'state.vscdb')
         else:
             return {"messages": [], "total": 0, "page": page, "per_page": per_page}
 
@@ -167,6 +201,12 @@ class JSONLParser:
                     # Apply filters
                     if self._should_include_message(parsed_message, search, message_type):
                         messages.append(parsed_message)
+        elif self.parser_type in ["cursor", "trae", "kiro"]:
+            prompts = self._cursor_query_prompts(session_path)
+            for idx, msg_data in enumerate(prompts, 1):
+                parsed_message = self._parse_cursor_message(msg_data, idx)
+                if self._should_include_message(parsed_message, search, message_type):
+                    messages.append(parsed_message)
 
         # Pagination
         total = len(messages)
@@ -276,6 +316,31 @@ class JSONLParser:
                     "content": json.dumps(data, indent=2),
                     "display_type": message_type.title()
                 }
+        
+    def _parse_cursor_message(self, data: Dict, line_num: int) -> Dict:
+        base_message = {
+            "line_number": line_num,
+            "timestamp": data.get("timestamp"),
+        }
+        role = data.get("role")
+        if role is None:
+            if data.get("from"):
+                role = "user" if str(data.get("from")).lower() == "user" else "assistant"
+            elif data.get("isUser") is not None:
+                role = "user" if data.get("isUser") else "assistant"
+            else:
+                role = "user"
+        content = data.get("content") or data.get("text") or data.get("prompt") or data.get("message") or ""
+        if isinstance(content, list):
+            content = "\n\n".join(str(x) for x in content)
+        return {
+            **base_message,
+            "type": "message",
+            "role": role,
+            "content": content,
+            "display_type": "User" if role == "user" else "Assistant",
+            "has_code": self._contains_code(content)
+        }
     
     def _parse_structured_content(self, content_list: List) -> str:
         """Parse structured content from tool calls"""
@@ -412,14 +477,14 @@ class JSONLParser:
         """Count total messages in either JSONL or JSON file"""
         try:
             if self.parser_type == "claude":
-                # For Claude JSONL files, count non-empty lines
                 with open(file_path, 'r', encoding='utf-8') as f:
                     return sum(1 for line in f if line.strip())
             elif self.parser_type == "qwen":
-                # For Qwen JSON files, load the JSON and count messages
                 with open(file_path, 'r', encoding='utf-8') as f:
                     session_data = json.load(f)
                     return len(session_data.get('messages', []))
+            elif self.parser_type in ["cursor", "trae", "kiro"]:
+                return self._cursor_count_prompts(file_path)
         except:
             return 0
     
@@ -564,6 +629,39 @@ class JSONLParser:
 
             # If no specific name found, return a cleaned version of the hash
             return project_dir[:12]  # Shorten the hash for readability
+        elif self.parser_type in ["cursor", "trae", "kiro"]:
+            import os
+            from urllib.parse import urlparse
+            workspace_path = os.path.join(self.projects_path, project_dir)
+            workspace_json = os.path.join(workspace_path, 'workspace.json')
+            full_path = None
+            if os.path.exists(workspace_json):
+                try:
+                    with open(workspace_json, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        full_path = (
+                            data.get('folder') or
+                            data.get('path') or
+                            data.get('workspace') or
+                            data.get('workspacePath') or
+                            data.get('name')
+                        )
+                except Exception:
+                    full_path = None
+            if isinstance(full_path, dict):
+                full_path = full_path.get('path') or full_path.get('folder')
+            if isinstance(full_path, str) and full_path:
+                parsed = urlparse(full_path)
+                if parsed.scheme == 'file':
+                    uri_path = parsed.path
+                else:
+                    uri_path = full_path
+                path_str = os.path.normpath(uri_path)
+                parts = [p for p in path_str.split(os.sep) if p]
+                if len(parts) > 3:
+                    parts = parts[-3:]
+                return '/'.join(parts)
+            return project_dir
     
     def _generate_diff_html(self, old_string: str, new_string: str, file_path: str = "") -> str:
         """Generate HTML diff view from old_string and new_string"""
@@ -644,3 +742,177 @@ class JSONLParser:
                    .replace('>', '&gt;')
                    .replace('"', '&quot;')
                    .replace("'", '&#x27;'))
+
+    def _format_cursor_display_name(self, project_dir: str) -> str:
+        import os
+        from urllib.parse import urlparse
+        workspace_path = os.path.join(self.projects_path, project_dir)
+        workspace_json = os.path.join(workspace_path, 'workspace.json')
+        if not os.path.exists(workspace_json):
+            return project_dir
+        try:
+            with open(workspace_json, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except Exception:
+            return project_dir
+        full_path = (
+            data.get('folder') or
+            data.get('path') or
+            data.get('workspace') or
+            data.get('workspacePath') or
+            data.get('name')
+        )
+        if isinstance(full_path, dict):
+            full_path = full_path.get('path') or full_path.get('folder')
+        if not isinstance(full_path, str) or not full_path:
+            return project_dir
+        parsed = urlparse(full_path)
+        uri_path = parsed.path if parsed.scheme == 'file' else full_path
+        path_str = os.path.normpath(uri_path)
+        parts = [p for p in path_str.split(os.sep) if p]
+        if len(parts) > 3:
+            parts = parts[-3:]
+        return '/'.join(parts)
+
+    def _cursor_count_prompts(self, db_path: str) -> int:
+        import sqlite3
+        try:
+            conn = sqlite3.connect(db_path)
+            cur = conn.cursor()
+            
+            # Determine the key based on parser type
+            if self.parser_type == 'cursor':
+                key = 'aiService.prompts'
+            elif self.parser_type == 'trae':
+                key = 'icube-ai-agent-storage-input-history'
+            elif self.parser_type == 'kiro':
+                key = self._find_state_key(cur)
+            else:
+                key = self._find_state_key(cur)
+            
+            if not key:
+                conn.close()
+                return 0
+            cur.execute("SELECT value FROM ItemTable WHERE key=?", (key,))
+            row = cur.fetchone()
+            conn.close()
+            if not row:
+                return 0
+            raw = row[0]
+            try:
+                data = json.loads(raw)
+            except Exception:
+                return 0
+            if isinstance(data, dict):
+                items = data.get('prompts') or data.get('messages') or []
+            elif isinstance(data, list):
+                items = data
+            else:
+                items = []
+            return len(items)
+        except Exception:
+            return 0
+
+    def _cursor_query_prompts(self, db_path: str) -> List[Dict]:
+        import sqlite3
+        results = []
+        try:
+            conn = sqlite3.connect(db_path)
+            cur = conn.cursor()
+            
+            # Determine the key based on parser type
+            if self.parser_type == 'cursor':
+                key = 'aiService.prompts'
+            elif self.parser_type == 'trae':
+                key = 'icube-ai-agent-storage-input-history'
+            elif self.parser_type == 'kiro':
+                key = self._find_state_key(cur)
+            else:
+                key = self._find_state_key(cur)
+            
+            if not key:
+                conn.close()
+                return results
+            cur.execute("SELECT value FROM ItemTable WHERE key=?", (key,))
+            row = cur.fetchone()
+            conn.close()
+            if not row:
+                return results
+            raw = row[0]
+            try:
+                data = json.loads(raw)
+            except Exception:
+                return results
+            if isinstance(data, dict):
+                items = data.get('prompts') or data.get('messages') or []
+            elif isinstance(data, list):
+                items = data
+            else:
+                items = []
+            
+            # Parse items based on parser type
+            for item in items:
+                if isinstance(item, dict):
+                    # For Trae, extract inputText
+                    if self.parser_type == 'trae' and 'inputText' in item:
+                        results.append({
+                            "role": "user",
+                            "content": item.get('inputText', ''),
+                            "timestamp": item.get('timestamp')
+                        })
+                    # For Cursor, extract text
+                    elif self.parser_type == 'cursor' and 'text' in item:
+                        results.append({
+                            "role": item.get('role', 'user'),
+                            "content": item.get('text', ''),
+                            "timestamp": item.get('timestamp')
+                        })
+                    else:
+                        results.append(item)
+                else:
+                    results.append({"role": "assistant", "content": str(item)})
+            return results
+        except Exception:
+            return results
+
+    def _find_state_key(self, cur) -> Optional[str]:
+        import json
+        patterns = ['%prompt%', '%ai%', '%chat%', '%history%', '%conversation%', '%message%']
+        seen = []
+        for pat in patterns:
+            try:
+                cur.execute("SELECT key FROM ItemTable WHERE key LIKE ? LIMIT 100", (pat,))
+                seen += [row[0] for row in cur.fetchall()]
+            except Exception:
+                continue
+        keys = list(dict.fromkeys(seen))
+        best_key = None
+        best_score = -1
+        for key in keys:
+            try:
+                cur.execute("SELECT value FROM ItemTable WHERE key=?", (key,))
+                row = cur.fetchone()
+                if not row:
+                    continue
+                val = row[0]
+                try:
+                    data = json.loads(val)
+                except Exception:
+                    continue
+                score = 0
+                if isinstance(data, list):
+                    score = len(data)
+                    if data and isinstance(data[0], dict) and any(k in data[0] for k in ['text','content','prompt','message']):
+                        score += 1000
+                elif isinstance(data, dict):
+                    items = data.get('prompts') or data.get('messages') or []
+                    if isinstance(items, list):
+                        score = len(items)
+                        if items and isinstance(items[0], dict) and any(k in items[0] for k in ['text','content','prompt','message']):
+                            score += 1000
+                if score > best_score:
+                    best_score = score
+                    best_key = key
+            except Exception:
+                continue
+        return best_key

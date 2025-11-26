@@ -75,6 +75,16 @@
                 <!-- View Switcher -->
                 <div class="flex items-center space-x-2">
                     <div class="inline-flex rounded-lg border border-gray-300 dark:border-gray-600 p-1 bg-gray-100 dark:bg-gray-700">
+                        <a href="/?view=claude"
+                           class="px-4 py-2 rounded-md text-sm font-medium transition-all
+                                  {% if current_view == 'claude' %}
+                                  bg-claude-500 text-white shadow-sm
+                                  {% else %}
+                                  text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white
+                                   {% endif %}">
+                            <i class="bi bi-robot mr-1"></i>
+                            {{ t('claude') }}
+                        </a>
                         <a href="/?view=qwen"
                            class="px-4 py-2 rounded-md text-sm font-medium transition-all
                                   {% if current_view == 'qwen' or not current_view %}
@@ -85,15 +95,35 @@
                             <i class="bi bi-moon-stars mr-1"></i>
                             {{ t('qwen') }}
                         </a>
-                        <a href="/?view=claude"
+                        <a href="/?view=cursor"
                            class="px-4 py-2 rounded-md text-sm font-medium transition-all
-                                  {% if current_view == 'claude' %}
-                                  bg-claude-500 text-white shadow-sm
+                                  {% if current_view == 'cursor' %}
+                                  bg-primary-600 text-white shadow-sm
                                   {% else %}
                                   text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white
                                   {% endif %}">
-                            <i class="bi bi-robot mr-1"></i>
-                            {{ t('claude') }}
+                            <i class="bi bi-cursor mr-1"></i>
+                            {{ t('cursor') if t('cursor') else 'Cursor' }}
+                        </a>
+                        <a href="/?view=trae"
+                           class="px-4 py-2 rounded-md text-sm font-medium transition-all
+                                  {% if current_view == 'trae' %}
+                                  bg-primary-600 text-white shadow-sm
+                                  {% else %}
+                                  text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white
+                                  {% endif %}">
+                            <i class="bi bi-terminal mr-1"></i>
+                            {{ t('trae') if t('trae') else 'Trae' }}
+                        </a>
+                        <a href="/?view=kiro"
+                           class="px-4 py-2 rounded-md text-sm font-medium transition-all
+                                  {% if current_view == 'kiro' %}
+                                  bg-primary-600 text-white shadow-sm
+                                  {% else %}
+                                  text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white
+                                  {% endif %}">
+                            <i class="bi bi-hdd-network mr-1"></i>
+                            {{ t('kiro') if t('kiro') else 'Kiro' }}
                         </a>
                     </div>
 
@@ -160,11 +190,19 @@
                     <span class="font-semibold
                         {% if current_view == 'claude' %}
                         text-claude-600 dark:text-claude-500
+                        {% elif current_view == 'cursor' %}
+                        text-primary-600 dark:text-primary-400
                         {% else %}
                         text-qwen-600 dark:text-qwen-500
                         {% endif %}">
                         {% if current_view == 'claude' %}
                             {{ t('claude') }}
+                        {% elif current_view == 'cursor' %}
+                            {{ t('cursor') if t('cursor') else 'Cursor' }}
+                        {% elif current_view == 'trae' %}
+                            {{ t('trae') if t('trae') else 'Trae' }}
+                        {% elif current_view == 'kiro' %}
+                            {{ t('kiro') if t('kiro') else 'Kiro' }}
                         {% else %}
                             {{ t('qwen') }}
                         {% endif %}
