@@ -1,0 +1,579 @@
+{% extends "base_ide.html" %}
+
+{% block title %}
+    {% if session_id %}
+        Session {{ session_id[:8] }} - AI Conversation Viewer
+    {% else %}
+        X-IDE - AI Conversation Viewer
+    {% endif %}
+{% endblock %}
+
+{% block breadcrumb %}{% endblock %}
+
+{% block content %}
+<div class="flex h-full bg-white dark:bg-gray-900 overflow-hidden">
+    
+    <!-- Column 1: IDE List (Servers) -->
+    <div class="w-[72px] flex-none bg-gray-900 dark:bg-gray-950 flex flex-col items-center py-3 space-y-4 overflow-y-auto hide-scrollbar z-20 h-full">
+        {% for view_name in ['claude', 'qwen', 'cursor', 'trae', 'kiro'] %}
+        <div class="relative group w-full flex flex-col items-center">
+            {% if current_view == view_name %}
+            <div class="absolute left-0 top-[20px] -translate-y-1/2 w-1 h-10 bg-white rounded-r-full transition-all duration-200"></div>
+            {% else %}
+            <div class="absolute left-0 top-[20px] -translate-y-1/2 w-1 h-2 group-hover:h-5 bg-white rounded-r-full transition-all duration-200 opacity-0 group-hover:opacity-100"></div>
+            {% endif %}
+            
+            <a href="/x-ide?view={{ view_name }}" 
+               class="relative w-12 h-12 rounded-[24px] group-hover:rounded-[16px] transition-all duration-200 flex items-center justify-center text-sm font-bold shadow-sm
+               {% if current_view == view_name %}
+                   {% if view_name == 'qwen' %}bg-purple-600 text-white
+                   {% elif view_name == 'claude' %}bg-orange-600 text-white
+                   {% elif view_name == 'cursor' %}bg-blue-600 text-white
+                   {% elif view_name == 'trae' %}bg-green-600 text-white
+                   {% elif view_name == 'kiro' %}bg-indigo-600 text-white
+                   {% endif %}
+               {% else %}
+                   bg-gray-700 text-gray-300 hover:bg-gray-600 hover:text-white
+               {% endif %}"
+               title="{{ view_name|capitalize }}">
+               
+               {% if view_name == 'qwen' %}Qwen
+               {% elif view_name == 'claude' %}Claude
+               {% elif view_name == 'cursor' %}Cursor
+               {% elif view_name == 'trae' %}Trae
+               {% elif view_name == 'kiro' %}Kiro
+               {% endif %}
+
+               {% if ide_stats[view_name].project_count > 0 %}
+               <div class="absolute -bottom-1 -right-1 bg-red-500 text-white text-[9px] font-bold px-1.5 rounded-full border-2 border-gray-900 min-w-[18px] text-center">
+                   {{ ide_stats[view_name].project_count }}
+               </div>
+               {% endif %}
+            </a>
+        </div>
+        {% endfor %}
+        
+        <div class="w-8 h-0.5 bg-gray-700 rounded-full mx-auto my-2"></div>
+        
+        <!-- Global Actions -->
+        <div class="flex flex-col items-center space-y-3 pb-4 mt-auto">
+             <!-- Search -->
+             <button onclick="openGlobalSearch()" 
+                     class="w-10 h-10 rounded-full bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white transition-all duration-200 flex items-center justify-center text-lg" 
+                     title="{{ t('search_favorites') }}">
+                 <i class="bi bi-search"></i>
+             </button>
+
+             <!-- Favorites -->
+             <button onclick="openFavoritesModal()"
+                class="w-10 h-10 rounded-full bg-gray-800 text-gray-400 hover:bg-amber-500/20 hover:text-amber-500 transition-all duration-200 flex items-center justify-center text-lg" 
+                title="{{ t('favorites') }}">
+                 <i class="bi bi-star"></i>
+             </button>
+             
+             <!-- Settings (Language/Theme) -->
+             <button onclick="openSettingsModal()" 
+                class="w-10 h-10 rounded-full bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-white transition-all duration-200 flex items-center justify-center text-lg" 
+                title="Settings">
+                 <i class="bi bi-gear"></i>
+             </button>
+        </div>
+    </div>
+
+    <!-- Column 2: Project List (Channels) -->
+    <div class="w-60 flex-none bg-gray-100 dark:bg-gray-900 flex flex-col border-r border-gray-200 dark:border-gray-800">
+        <!-- Header -->
+        <div class="h-12 px-4 flex items-center justify-between shadow-sm bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-10">
+            <h2 class="font-bold text-gray-700 dark:text-gray-200 truncate">{{ t('projects') }}</h2>
+            <span class="text-xs font-mono text-gray-500">{{ projects|length }}</span>
+        </div>
+        
+        <!-- List -->
+        <div class="flex-1 overflow-y-auto p-2 space-y-0.5 custom-scrollbar">
+            {% for project in projects %}
+            <a href="/x-ide?view={{ current_view }}&project_name={{ project.name }}" 
+               class="group flex items-center justify-between px-2 py-1.5 rounded-md transition-colors
+               {% if project.name == project_name %}
+                   bg-gray-200 dark:bg-gray-700/50 text-gray-900 dark:text-white
+               {% else %}
+                   text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-gray-300
+               {% endif %}">
+                <div class="flex items-center truncate min-w-0">
+                    <i class="bi bi-hash text-lg mr-1.5 opacity-50 flex-none"></i>
+                    <span class="truncate text-sm font-medium">{{ project.display_name }}</span>
+                </div>
+                {% if project.session_count > 0 %}
+                <span class="ml-2 bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[10px] font-bold px-1.5 rounded-full min-w-[20px] text-center">
+                    {{ project.session_count }}
+                </span>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+        
+        <!-- User User Bar -->
+        <div class="h-14 bg-gray-200/50 dark:bg-gray-900/50 flex items-center px-2 border-t border-gray-200 dark:border-gray-800">
+             <div class="flex items-center space-x-2 w-full">
+                 <div class="w-8 h-8 rounded-full bg-gray-300 dark:bg-gray-700 flex items-center justify-center">
+                     <i class="bi bi-person-fill text-gray-500 dark:text-gray-400"></i>
+                 </div>
+                 <div class="flex-1 min-w-0">
+                     <div class="text-xs font-bold text-gray-700 dark:text-gray-200 truncate">User</div>
+                     <div class="text-[10px] text-gray-500 truncate">Online</div>
+                 </div>
+             </div>
+        </div>
+    </div>
+
+    <!-- Column 3: Session List (Threads/Members esque) -->
+    <div class="w-60 flex-none bg-gray-50 dark:bg-gray-800/50 flex flex-col border-r border-gray-200 dark:border-gray-800 hidden md:flex">
+         <!-- Header -->
+        <div class="h-12 px-4 flex items-center justify-between shadow-sm bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 z-10">
+            <h2 class="font-bold text-gray-700 dark:text-gray-200 truncate">{{ t('sessions') }}</h2>
+             <span class="text-xs font-mono text-gray-500">{{ sessions|length }}</span>
+        </div>
+
+        <!-- List -->
+        <div class="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar">
+            {% for session in sessions %}
+            <a href="/x-ide?view={{ current_view }}&project_name={{ project_name }}&session_id={{ session.id }}"
+               class="block p-1.5 rounded-md border transition-all duration-200 relative group
+               {% if session.id == session_id %}
+                   bg-white dark:bg-gray-700 border-primary-500 shadow-sm
+               {% else %}
+                   bg-transparent border-transparent hover:bg-gray-100 dark:hover:bg-gray-700/50
+               {% endif %}">
+                <!-- Session Title -->
+                <div class="text-xs font-medium text-gray-900 dark:text-gray-200 mb-0.5 pr-6 line-clamp-2" title="{{ session.title }}">
+                    {{ session.title }}
+                </div>
+                
+                <!-- Session Metadata -->
+                <div class="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400">
+                    <span class="truncate">{{ session.modified_time_str.split(' ')[0] if session.modified_time_str else '' }}</span>
+                </div>
+                
+                <!-- Session ID (on hover) -->
+                <div class="text-[9px] font-mono text-gray-400 dark:text-gray-500 mt-0.5 truncate opacity-0 group-hover:opacity-100 transition-opacity">
+                    #{{ session.id[:8] }}
+                </div>
+                
+                <!-- Message Count Badge (Corner Mark) -->
+                <div class="absolute top-1 right-1 bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300 text-[9px] font-bold px-1 rounded-full min-w-[18px] text-center">
+                    {{ session.message_count }}
+                </div>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Column 4: Chat Area -->
+    <div class="flex-1 flex flex-col bg-white dark:bg-gray-900 min-w-0">
+        <!-- Chat Header -->
+        <div class="flex-none border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900">
+            <!-- Title Bar -->
+            <div class="h-12 px-4 flex items-center justify-between shadow-sm">
+                <div class="flex items-center min-w-0 flex-1">
+                    <i class="bi bi-chat-quote-fill text-gray-400 mr-3 text-xl flex-none"></i>
+                    <div class="min-w-0 flex-1">
+                        <h3 class="font-bold text-gray-900 dark:text-white truncate">
+                            {% if session_title %}
+                                {{ session_title }}
+                            {% elif session_id %}
+                                {{ session_id[:12] }}...
+                            {% else %}
+                                Select a Session
+                            {% endif %}
+                        </h3>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-3 text-gray-500 flex-none">
+                     <!-- Search Toggle -->
+                     <button type="button" id="toggle-search" class="hover:text-gray-700 dark:hover:text-gray-300" title="{{ t('search_messages') }}">
+                        <i class="bi bi-search text-lg"></i>
+                     </button>
+                     
+                     <!-- Favorite -->
+                     {% if session_id %}
+                     <button id="session-favorite-toggle"
+                        class="hover:text-amber-500 transition-colors text-gray-500"
+                        data-view="{{ current_view or 'qwen' }}"
+                        data-project="{{ project_name }}"
+                        data-session="{{ session_id }}"
+                        title="{{ t('favorite_session_tooltip') }}">
+                        <i class="bi bi-star text-lg"></i>
+                     </button>
+                     {% else %}
+                     <button disabled
+                        class="text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                        title="Select a session to favorite">
+                        <i class="bi bi-star text-lg"></i>
+                     </button>
+                     {% endif %}
+                </div>
+            </div>
+            
+            <!-- Session Info Bar (Summary + ID) -->
+            {% if session_id %}
+            <div class="px-4 py-2 bg-gradient-to-r from-blue-50 to-transparent dark:from-blue-900/20 dark:to-transparent border-t border-gray-100 dark:border-gray-800">
+                <div class="flex items-start gap-3">
+                    <!-- Session ID Badge -->
+                    <div class="flex-none">
+                        <span class="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                            <i class="bi bi-hash mr-1"></i>
+                            {{ session_id[:8] }}
+                        </span>
+                    </div>
+                    
+                    <!-- Session Summary -->
+                    {% if session_summary %}
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-start gap-2">
+                            <i class="bi bi-journal-text text-blue-500 dark:text-blue-400 mt-0.5 flex-none"></i>
+                            <p class="text-sm text-gray-700 dark:text-gray-300 line-clamp-2" title="{{ session_summary }}">
+                                {{ session_summary }}
+                            </p>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Search Panel -->
+        <div id="search-panel" class="flex-none border-b border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50 p-3 {{ 'hidden' if not (search or message_type) else '' }}">
+             <form id="search-form" action="/x-ide" method="get" class="flex flex-wrap gap-3">
+                <input type="hidden" name="view" value="{{ current_view or 'qwen' }}" />
+                <input type="hidden" name="project_name" value="{{ project_name }}" />
+                <input type="hidden" name="session_id" value="{{ session_id }}" />
+                <div class="flex-1 min-w-[150px]">
+                    <div class="relative">
+                        <input type="text" id="search" name="search" value="{{ search or '' }}"
+                               class="w-full pl-8 pr-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-sm focus:ring-1 focus:ring-primary-500"
+                               placeholder="{{ t('search_content_placeholder') }}">
+                        <i class="bi bi-search absolute left-2.5 top-2 text-gray-400 text-xs"></i>
+                    </div>
+                </div>
+                <select name="message_type" class="px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-sm auto-filter">
+                    <option value="">{{ t('all_messages') }}</option>
+                    <option value="user" {{ 'selected' if message_type == 'user' else '' }}>{{ t('user') }}</option>
+                    <option value="assistant" {{ 'selected' if message_type == 'assistant' else '' }}>{{ t('assistant') }}</option>
+                </select>
+                <select name="per_page" class="px-2 py-1.5 border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-900 text-sm auto-filter">
+                    <option value="25">25</option>
+                    <option value="50" {{ 'selected' if conversation.per_page == 50 else '' }}>50</option>
+                    <option value="100" {{ 'selected' if conversation.per_page == 100 else '' }}>100</option>
+                </select>
+                {% if search or message_type %}
+                <button type="button" id="clear-filters" class="text-xs text-red-500 hover:underline">{{ t('clear_filters') }}</button>
+                {% endif %}
+             </form>
+        </div>
+
+        <!-- Messages List -->
+        <div class="flex-1 overflow-y-auto px-2 py-1 space-y-0 custom-scrollbar" id="message-container">
+             {% if conversation and conversation.messages %}
+                {% if conversation.page > 1 %}
+                <div class="flex justify-center py-2">
+                    <a href="/x-ide?view={{ current_view }}&project_name={{ project_name }}&session_id={{ session_id }}&page={{ conversation.page - 1 }}" 
+                       class="text-xs text-primary-500 hover:underline flex items-center">
+                        <i class="bi bi-arrow-up-circle mr-1"></i> Load Previous
+                    </a>
+                </div>
+                {% endif %}
+
+                {% for message in conversation.messages %}
+                    {% set is_same_user = False %}
+                    {% if not loop.first and loop.previtem.role == message.role and loop.previtem.display_type == message.display_type and message.type != 'summary' and loop.previtem.type != 'summary' %}
+                        {% set is_same_user = True %}
+                    {% endif %}
+                    
+                    <div id="message-{{ loop.index }}" 
+                         class="group flex pl-0 pr-2 py-0 hover:bg-gray-100/50 dark:hover:bg-gray-800/30 relative transition-colors {{ 'mt-0' if is_same_user else 'mt-2' }}">
+                        
+                        <!-- Avatar -->
+                        <div class="flex-none w-[36px] flex justify-center select-none pt-0.5">
+                            {% if not is_same_user %}
+                                <div class="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs shadow-sm overflow-hidden
+                                    {% if message.role == 'user' or message.display_type == 'User' %} bg-blue-500
+                                    {% elif message.role == 'assistant' or message.display_type == 'Assistant' %} bg-green-600
+                                    {% elif message.type == 'summary' %} bg-amber-500
+                                    {% else %} bg-gray-500 {% endif %}">
+                                    {% if message.role == 'user' or message.display_type == 'User' %} <i class="bi bi-person-fill text-[10px]"></i>
+                                    {% elif message.role == 'assistant' or message.display_type == 'Assistant' %} <i class="bi bi-robot text-[10px]"></i>
+                                    {% elif message.type == 'summary' %} <i class="bi bi-journal-text text-[10px]"></i>
+                                    {% else %} <i class="bi bi-gear-fill text-[10px]"></i> {% endif %}
+                                </div>
+                            {% else %}
+                                <div class="text-[9px] text-gray-400 hidden group-hover:block pt-0.5 w-full text-center font-mono">
+                                    {{ message.timestamp.split(' ')[1] if message.timestamp else '' }}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Content -->
+                        <div class="flex-1 min-w-0 pl-1.5">
+                            {% if not is_same_user %}
+                                <div class="flex items-center items-baseline mb-0.5">
+                                    <span class="font-medium text-xs mr-1.5 text-gray-900 dark:text-gray-100 hover:underline cursor-pointer">
+                                        {% if message.role == 'user' or message.display_type == 'User' %} {{ t('user') }}
+                                        {% elif message.role == 'assistant' or message.display_type == 'Assistant' %} 
+                                            {% if current_view == 'claude' %}{{ t('claude') if t('claude') else 'Claude' }}{% elif current_view == 'cursor' %}{{ t('cursor') if t('cursor') else 'Cursor' }}{% elif current_view == 'trae' %}{{ t('trae') if t('trae') else 'Trae' }}{% elif current_view == 'kiro' %}{{ t('kiro') if t('kiro') else 'Kiro' }}{% else %}{{ t('qwen') if t('qwen') else 'Qwen' }}{% endif %}
+                                        {% elif message.type == 'summary' %} {{ t('summary') }}
+                                        {% else %} {{ message.display_type }} {% endif %}
+                                    </span>
+                                    <span class="text-[10px] text-gray-500 dark:text-gray-400">
+                                        {{ message.timestamp }}
+                                    </span>
+                                    {% if message.role == 'assistant' or message.display_type == 'Assistant' %}
+                                        <span class="ml-1.5 px-1 py-0 rounded text-[9px] font-bold bg-primary-600 text-white uppercase tracking-wide">BOT</span>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            
+                            <div class="message-content prose prose-sm dark:prose-invert max-w-none break-words text-[13px] leading-[1.4] 
+                                [&_p]:my-0.5 [&_p:first-child]:mt-0 [&_p:last-child]:mb-0
+                                [&_ul]:my-1 [&_ul]:pl-4 [&_ol]:my-1 [&_ol]:pl-4 
+                                [&_li]:my-0 [&_li]:py-0
+                                [&_pre]:my-1.5 [&_pre]:text-xs
+                                [&_h1]:my-1 [&_h1]:text-base [&_h2]:my-1 [&_h2]:text-sm [&_h3]:my-0.5 [&_h3]:text-sm
+                                [&_blockquote]:my-1 [&_blockquote]:py-0.5
+                                [&_code]:text-xs [&_code]:px-1 [&_code]:py-0
+                                {{ 'text-gray-800 dark:text-gray-200' if message.type != 'summary' else 'text-gray-500 dark:text-gray-400 italic border-l-2 border-amber-400 pl-2' }}">
+                                {% if message.rendered_content %}
+                                    {{ message.rendered_content | safe }}
+                                {% else %}
+                                    <div class="whitespace-pre-wrap font-sans">{{ message.content }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Hover Actions -->
+                        <div class="absolute right-4 top-0 -mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm rounded-md opacity-0 group-hover:opacity-100 transition-opacity flex items-center z-10 overflow-hidden">
+                            <button class="favorite-toggle p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-amber-500 transition-colors"
+                                     data-view="{{ current_view or 'qwen' }}"
+                                     data-project="{{ project_name }}"
+                                     data-session="{{ session_id }}"
+                                     data-line="{{ message.line_number }}"
+                                     data-content="{{ message.content[:200] }}">
+                                <i class="bi bi-star text-sm"></i>
+                            </button>
+                             <div class="w-px h-4 bg-gray-200 dark:bg-gray-700"></div>
+                             <a href="#message-{{ loop.index }}" class="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-400 hover:text-primary-500 transition-colors">
+                                <i class="bi bi-link-45deg text-lg"></i>
+                             </a>
+                        </div>
+                    </div>
+                {% endfor %}
+             {% else %}
+                <div class="flex flex-col items-center justify-center h-full text-gray-500">
+                    <i class="bi bi-chat-square-text text-4xl mb-2 opacity-20"></i>
+                    <p>{{ t('no_messages_found') }}</p>
+                </div>
+             {% endif %}
+        </div>
+
+        <!-- Input Area (Placeholder for "Reserved Send") -->
+        <div class="flex-none p-4 bg-white dark:bg-gray-900">
+            <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 flex items-center text-gray-500 cursor-not-allowed">
+                <i class="bi bi-plus-circle-fill text-gray-400 text-xl mr-3"></i>
+                <span class="text-sm">
+                    {% if session_id %}
+                        Message #{{ session_id[:8] }}... (Read Only)
+                    {% else %}
+                        Select a session to view messages
+                    {% endif %}
+                </span>
+                <div class="ml-auto flex space-x-3 text-xl">
+                    <i class="bi bi-gift"></i>
+                    <i class="bi bi-filetype-gif"></i>
+                    <i class="bi bi-emoji-smile"></i>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pagination Sticky Bottom -->
+        {% if conversation and conversation.total_pages > 1 %}
+        <div class="flex-none border-t border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 px-4 py-2 flex items-center justify-between text-xs">
+             <span class="text-gray-500">{{ t('page') }} {{ conversation.page }} / {{ conversation.total_pages }}</span>
+             <nav class="flex space-x-1">
+                {% if conversation.page > 1 %}
+                <a href="/x-ide?view={{ current_view }}&project_name={{ project_name }}&session_id={{ session_id }}&page={{ conversation.page - 1 }}" class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"><i class="bi bi-chevron-left"></i></a>
+                {% endif %}
+                {% if conversation.page < conversation.total_pages %}
+                <a href="/x-ide?view={{ current_view }}&project_name={{ project_name }}&session_id={{ session_id }}&page={{ conversation.page + 1 }}" class="p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-700"><i class="bi bi-chevron-right"></i></a>
+                {% endif %}
+             </nav>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Column 5: Right Sidebar (Members/Info - Optional, currently hidden or Session List could be here if swapped) -->
+    <!-- User asked for Session Record as 3rd col, Chat as Last. So this is done. -->
+
+</div>
+
+<!-- Settings Modal -->
+<div id="settings-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-md w-full">
+        <!-- Modal Header -->
+        <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                    <i class="bi bi-gear text-primary-600 mr-2"></i>
+                    Settings
+                </h2>
+                <button onclick="document.getElementById('settings-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                    <i class="bi bi-x-lg text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal Body -->
+        <div class="px-6 py-6">
+            <!-- Theme Setting -->
+            <div class="mb-6">
+                <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase mb-3">Theme</h3>
+                <button id="theme-toggle-modal" class="w-full text-left px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-between border border-gray-200 dark:border-gray-600 transition-colors">
+                    <span class="flex items-center">
+                        <i class="bi bi-moon-stars mr-3 text-lg"></i>
+                        <span>Toggle Dark Mode</span>
+                    </span>
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+            </div>
+
+            <!-- Language Setting -->
+            <div>
+                <h3 class="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase mb-3">Language</h3>
+                <div class="space-y-2">
+                    <a href="/set-language/en" class="block px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-between border border-gray-200 dark:border-gray-600 transition-colors">
+                        <span class="flex items-center">
+                            <i class="bi bi-globe mr-3 text-lg"></i>
+                            <span>English</span>
+                        </span>
+                        {% if lang == 'en' %}<i class="bi bi-check-circle-fill text-primary-500 text-lg"></i>{% endif %}
+                    </a>
+                    <a href="/set-language/zh" class="block px-4 py-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 flex items-center justify-between border border-gray-200 dark:border-gray-600 transition-colors">
+                        <span class="flex items-center">
+                            <i class="bi bi-globe mr-3 text-lg"></i>
+                            <span>中文</span>
+                        </span>
+                        {% if lang == 'zh' %}<i class="bi bi-check-circle-fill text-primary-500 text-lg"></i>{% endif %}
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Open Settings Modal
+    window.openSettingsModal = () => {
+        document.getElementById('settings-modal').classList.remove('hidden');
+    };
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Theme toggle in modal
+        const themeToggleModal = document.getElementById('theme-toggle-modal');
+        if (themeToggleModal) {
+            themeToggleModal.addEventListener('click', () => {
+                if (window.claudeViewer) {
+                    window.claudeViewer.toggleTheme();
+                } else {
+                    // Fallback theme toggle
+                    const html = document.documentElement;
+                    if (html.classList.contains('dark')) {
+                        html.classList.remove('dark');
+                        localStorage.setItem('theme', 'light');
+                    } else {
+                        html.classList.add('dark');
+                        localStorage.setItem('theme', 'dark');
+                    }
+                }
+            });
+        }
+        
+        // Toggle Search
+        const toggleBtn = document.getElementById('toggle-search');
+        const searchPanel = document.getElementById('search-panel');
+        if(toggleBtn && searchPanel) {
+            toggleBtn.addEventListener('click', () => {
+                searchPanel.classList.toggle('hidden');
+                if(!searchPanel.classList.contains('hidden')) {
+                    const searchInput = document.getElementById('search');
+                    if (searchInput) searchInput.focus();
+                }
+            });
+        }
+
+        // Clear Filters
+        const clearBtn = document.getElementById('clear-filters');
+        if(clearBtn) {
+            clearBtn.addEventListener('click', () => {
+                const url = new URL(window.location);
+                url.searchParams.delete('search');
+                url.searchParams.delete('message_type');
+                url.searchParams.delete('per_page');
+                url.searchParams.delete('page');
+                window.location.href = url.toString();
+            });
+        }
+
+        // Auto Filter
+        document.querySelectorAll('.auto-filter').forEach(el => {
+            el.addEventListener('change', () => {
+                const form = document.getElementById('search-form');
+                if (form) form.submit();
+            });
+        });
+        
+        // Highlight
+        const hl = new URLSearchParams(window.location.search).get('highlight');
+        const msgContainer = document.getElementById('message-container');
+        
+        if(hl) {
+            setTimeout(() => {
+                const el = document.getElementById(`message-${hl}`);
+                if(el) {
+                    el.scrollIntoView({behavior: 'smooth', block: 'center'});
+                    el.classList.add('bg-amber-50', 'dark:bg-amber-900/30');
+                    setTimeout(() => el.classList.remove('bg-amber-50', 'dark:bg-amber-900/30'), 2000);
+                }
+            }, 300);
+        } else {
+             // Default scroll to bottom for IM style
+             if(msgContainer) {
+                 msgContainer.scrollTop = msgContainer.scrollHeight;
+             }
+        }
+    });
+</script>
+<style>
+    .hide-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .hide-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+        width: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(156, 163, 175, 0.5);
+        border-radius: 20px;
+    }
+    .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+        background-color: rgba(75, 85, 99, 0.5);
+    }
+</style>
+{% endblock %}

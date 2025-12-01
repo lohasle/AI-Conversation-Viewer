@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}X-IDE{% endblock %}</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0f9ff',
+                            100: '#e0f2fe',
+                            200: '#bae6fd',
+                            300: '#7dd3fc',
+                            400: '#38bdf8',
+                            500: '#0ea5e9',
+                            600: '#0284c7',
+                            700: '#0369a1',
+                            800: '#075985',
+                            900: '#0c4a6e',
+                        },
+                        claude: {
+                            500: '#cc9b7a',
+                            600: '#b8845f',
+                        },
+                        qwen: {
+                            500: '#9333ea',
+                            600: '#7e22ce',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS (for legacy styles) -->
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/style.css') }}">
+
+    {% block extra_head %}{% endblock %}
+    <style>
+        /* Force full height for IDE mode */
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 transition-colors duration-200 h-full">
+    <!-- Loading Indicator -->
+    <div id="page-loader" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center">
+        <div class="bg-white dark:bg-gray-800 rounded-lg p-6 flex items-center space-x-3">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <span class="text-gray-700 dark:text-gray-200 font-medium">{{ t('loading') }}</span>
+        </div>
+    </div>
+
+    <!-- Main Content (Full Screen) -->
+    <div class="h-full w-full flex flex-col">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Global Search Modal (Shared) -->
+    <div id="global-search-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto flex flex-col">
+            <!-- Modal Header -->
+            <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 z-10">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                        <i class="bi bi-search text-primary-600 mr-2"></i>
+                        {{ t('global_search') }}
+                    </h2>
+                    <button onclick="document.getElementById('global-search-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        <i class="bi bi-x-lg text-xl"></i>
+                    </button>
+                </div>
+                <form id="global-search-form-ide" class="flex gap-2">
+                    <div class="relative flex-1">
+                        <i class="bi bi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text"
+                               id="search-input-ide"
+                               class="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                               placeholder="{{ t('search_all_ides') }}">
+                    </div>
+                    <button type="submit"
+                            class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors flex items-center">
+                        <i class="bi bi-search mr-2"></i>
+                        {{ t('search_button') }}
+                    </button>
+                </form>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="px-6 py-6 flex-1 overflow-y-auto">
+                <div id="search-results-container-ide" class="hidden">
+                     <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">
+                            {{ t('search_results') }}
+                            <span id="search-results-count-ide" class="ml-2 text-sm font-normal text-gray-600 dark:text-gray-400"></span>
+                        </h3>
+                     </div>
+                     <div id="search-results-ide" class="space-y-4">
+                         <!-- Results here -->
+                     </div>
+                </div>
+                <div id="search-initial-state-ide" class="text-center py-12 text-gray-500 dark:text-gray-400">
+                    <i class="bi bi-search text-4xl mb-3 opacity-50"></i>
+                    <p>{{ t('search_all_sessions_ides') }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Favorites Modal (Shared) -->
+    <div id="favorites-list-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto flex flex-col h-[80vh]">
+            <!-- Modal Header -->
+            <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4 z-10 flex-none">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                        <i class="bi bi-star text-amber-500 mr-2"></i>
+                        {{ t('favorites') }}
+                    </h2>
+                    <button onclick="document.getElementById('favorites-list-modal').classList.add('hidden')" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        <i class="bi bi-x-lg text-xl"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Modal Body -->
+            <div class="flex-1 overflow-hidden flex">
+                 <!-- Sidebar -->
+                 <div class="w-48 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 p-4 space-y-2">
+                     <button class="w-full text-left px-3 py-2 rounded-lg bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400 font-medium text-sm">
+                         <i class="bi bi-collection mr-2"></i> All Favorites
+                     </button>
+                 </div>
+                 <!-- List -->
+                 <div class="flex-1 overflow-y-auto p-6" id="favorites-list-container">
+                     <!-- Favorites loaded here -->
+                     <div class="flex items-center justify-center h-full">
+                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                     </div>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add to Favorites Modal (Shared) -->
+    <div id="add-favorite-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <!-- Modal Header -->
+            <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
+                        <i class="bi bi-star-fill text-amber-500 mr-2"></i>
+                        {{ t('add_to_favorites') }}
+                    </h2>
+                    <button id="close-add-favorite-modal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        <i class="bi bi-x-lg text-xl"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="px-6 py-6">
+                <div class="space-y-4">
+                    <!-- Preview Info -->
+                    <div id="favorite-preview" class="bg-gradient-to-r from-primary-50 to-transparent dark:from-primary-900/20 dark:to-transparent border-l-4 border-primary-500 px-4 py-3 rounded">
+                        <p id="favorite-preview-title" class="font-semibold text-gray-900 dark:text-white"></p>
+                        <p id="favorite-preview-meta" class="text-sm text-gray-600 dark:text-gray-400 mt-1"></p>
+                    </div>
+
+                    <!-- Title Input -->
+                    <div>
+                        <label for="favorite-title-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="bi bi-pencil mr-1"></i>
+                            {{ t('edit') }} {{ t('title_optional') }}
+                        </label>
+                        <input type="text"
+                               id="favorite-title-input"
+                               class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                               placeholder="Auto-generated title will be used if left empty">
+                    </div>
+
+                    <!-- Annotation Input -->
+                    <div>
+                        <label for="favorite-annotation-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="bi bi-chat-left-text mr-1"></i>
+                            {{ t('annotation') }}
+                        </label>
+                        <textarea id="favorite-annotation-input"
+                                  rows="4"
+                                  class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition resize-none"
+                                  placeholder="{{ t('add_notes_comments') }}"></textarea>
+                    </div>
+
+                    <!-- Tags Section (Future) -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            <i class="bi bi-tags mr-1"></i>
+                            {{ t('tags') }}
+                        </label>
+                        <div class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50">
+                            <span class="text-sm text-gray-500 dark:text-gray-400 italic">{{ t('tag_management_soon') }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="sticky bottom-0 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
+                <div class="flex items-center justify-end space-x-3">
+                    <button id="cancel-add-favorite" class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 font-medium transition-colors">
+                        <i class="bi bi-x-circle mr-2"></i>
+                        {{ t('cancel') }}
+                    </button>
+                    <button id="save-add-favorite" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium transition-colors">
+                        <i class="bi bi-star-fill mr-2"></i>
+                        {{ t('add_to_favorites_button') }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="{{ url_for('static', path='/js/app.js') }}"></script>
+
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

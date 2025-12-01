@@ -12,6 +12,10 @@ from datetime import datetime
 from .utils.jsonl_parser import JSONLParser
 from .i18n import get_translation, TRANSLATIONS
 from .db.favorites_db import FavoritesDB
+from .utils.cache import (
+    projects_cache, sessions_cache, conversation_cache, 
+    search_cache, statistics_cache, cached, clear_all_caches, get_cache_stats
+)
 import markdown
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name, guess_lexer
@@ -115,6 +119,40 @@ def get_parser(parser_type: str = "qwen"):
         return JSONLParser(kiro_path, parser_type="kiro")
     else:
         raise ValueError(f"Unsupported parser type: {parser_type}")
+
+
+# 缓存包装的获取项目函数
+@cached(projects_cache, ttl=300, key_prefix="projects")
+def get_projects_cached(parser_type: str) -> List[Dict]:
+    """获取项目列表（带缓存）"""
+    parser = get_parser(parser_type)
+    return parser.get_projects()
+
+
+# 缓存包装的获取会话函数
+@cached(sessions_cache, ttl=180, key_prefix="sessions")
+def get_sessions_cached(parser_type: str, project_name: str) -> List[Dict]:
+    """获取会话列表（带缓存）"""
+    parser = get_parser(parser_type)
+    return parser.get_sessions(project_name)
+
+
+# 缓存包装的获取会话内容函数
+@cached(conversation_cache, ttl=600, key_prefix="conversation")
+def get_conversation_cached(
+    parser_type: str,
+    project_name: str,
+    session_id: str,
+    page: int = 1,
+    per_page: int = 50,
+    search: Optional[str] = None,
+    message_type: Optional[str] = None
+) -> Dict:
+    """获取会话内容（带缓存）"""
+    parser = get_parser(parser_type)
+    return parser.get_conversation(
+        project_name, session_id, page, per_page, search, message_type
+    )
 
 # Pydantic models
 class Project(BaseModel):
@@ -288,6 +326,23 @@ async def set_language(lang: str, request: Request):
 
     return response
 
+def get_ide_stats_helper():
+    stats = {}
+    for view_name in ["claude", "qwen", "cursor", "trae", "kiro"]:
+        try:
+            parser = get_parser(view_name)
+            projects = parser.get_projects()
+            stats[view_name] = {
+                "project_count": len(projects),
+                "available": True
+            }
+        except Exception:
+            stats[view_name] = {
+                "project_count": 0,
+                "available": False
+            }
+    return stats
+
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     """Dashboard homepage with statistics and global search"""
@@ -297,11 +352,103 @@ async def root(request: Request):
     }
     return templates.TemplateResponse("dashboard.html", add_template_context(request, context))
 
+@app.get("/x-ide", response_class=HTMLResponse)
+async def x_ide_view(
+    request: Request,
+    view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$"),
+    project_name: Optional[str] = Query(None),
+    session_id: Optional[str] = Query(None),
+    page: Optional[int] = Query(None, ge=1),
+    per_page: int = Query(50, le=200, ge=10),
+    search: Optional[str] = Query(None),
+    message_type: Optional[str] = Query(None)
+):
+    """App Shell - Main Entry Point"""
+    
+    # 1. Get IDE Stats for Column 1（使用缓存）
+    ide_stats = get_ide_stats_helper()
+    
+    # 2. Get Projects for Column 2（使用缓存）
+    projects = get_projects_cached(view)
+    
+    # 3. Get Sessions for Column 3 (if project selected)（使用缓存）
+    sessions = []
+    if project_name:
+         try:
+             sessions = get_sessions_cached(view, project_name)
+         except:
+             sessions = []
+             
+    # 4. Get Conversation for Column 4 (if session selected)（使用缓存）
+    conversation = None
+    session_summary = None
+    session_title = None
+    
+    if project_name and session_id:
+        # Get session title and summary
+        parser = get_parser(view)
+        session_summary = parser.get_session_summary(project_name, session_id)
+        session_title = next((s['title'] for s in sessions if s['id'] == session_id), session_id)
+        
+        # Logic to determine page if not provided (Load last page for IM feel)
+        target_page = page
+        if target_page is None:
+            # We need to know total pages. Fetch meta first?
+            # Optimization: fetch page 1 to get total, then fetch last?
+            # Or just fetch with a special flag?
+            # For now, let's just default to page 1, but the user asked for "scroll to bottom is newest".
+            # Usually paginated APIs return oldest first (page 1). 
+            # If so, we need the last page.
+            # Let's try fetching page 1, check total_pages, then fetch that.
+            try:
+                temp_conv = parser.get_conversation(project_name, session_id, page=1, per_page=per_page)
+                if temp_conv.get('total_pages', 1) > 1:
+                    target_page = temp_conv['total_pages']
+                else:
+                    target_page = 1
+            except:
+                target_page = 1
+        
+        try:
+            # 使用缓存获取会话内容
+            conversation = get_conversation_cached(
+                view, project_name, session_id, target_page, per_page, search, message_type
+            )
+            
+            # Render markdown
+            if conversation and "messages" in conversation:
+                 for message in conversation["messages"]:
+                    if message.get("content"):
+                        rendered = render_markdown_with_code(message["content"])
+                        if search:
+                            message["rendered_content"] = highlight_search_text(rendered, search)
+                        else:
+                            message["rendered_content"] = rendered
+        except Exception:
+            conversation = None
+
+    context = {
+        "request": request,
+        "current_view": view,
+        "ide_stats": ide_stats,
+        "projects": projects,
+        "sessions": sessions,
+        "project_name": project_name,
+        "session_id": session_id,
+        "session_title": session_title,
+        "session_summary": session_summary,
+        "conversation": conversation,
+        "search": search,
+        "message_type": message_type
+    }
+    
+    return templates.TemplateResponse("app.html", add_template_context(request, context))
+
 @app.get("/sessions", response_class=HTMLResponse)
 async def sessions_view(request: Request, view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
     """Sessions page showing projects based on selected view"""
-    parser = get_parser(view)
-    projects = parser.get_projects()
+    # 使用缓存
+    projects = get_projects_cached(view)
 
     # Add source information to distinguish projects
     for project in projects:
@@ -327,8 +474,8 @@ async def sessions_view(request: Request, view: str = Query("qwen", regex="^(qwe
 @app.get("/api/projects", response_model=List[Project])
 async def get_projects(view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
     """API endpoint to get projects based on selected view (Qwen or Claude)"""
-    parser = get_parser(view)
-    projects = parser.get_projects()
+    # 使用缓存
+    projects = get_projects_cached(view)
 
     # Add source information to distinguish projects
     for project in projects:
@@ -399,8 +546,8 @@ async def get_recent_sessions(limit: int = Query(20, le=100, ge=1)):
 @app.get("/api/sessions/{project_name}", response_model=List[Session])
 async def get_sessions(project_name: str, view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
     """API endpoint to get sessions for a project based on selected view"""
-    parser = get_parser(view)
-    sessions = parser.get_sessions(project_name)
+    # 使用缓存
+    sessions = get_sessions_cached(view, project_name)
 
     if not sessions:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -421,6 +568,7 @@ async def conversation_view(
     """Conversation viewer page"""
     parser = get_parser(view)
     sessions = parser.get_sessions(project_name)
+    projects = parser.get_projects()
 
     if not any(s['id'] == session_id for s in sessions):
         raise HTTPException(status_code=404, detail="Conversation not found")
@@ -429,7 +577,11 @@ async def conversation_view(
         project_name, session_id, page, per_page, search, message_type
     )
 
+    # Get session summary
+    session_summary = parser.get_session_summary(project_name, session_id)
     
+    # Get session title
+    session_title = next((s['title'] for s in sessions if s['id'] == session_id), session_id)
 
     # Render markdown content and highlight search terms
     for message in conversation["messages"]:
@@ -445,11 +597,15 @@ async def conversation_view(
         "request": request,
         "project_name": project_name,
         "session_id": session_id,
+        "session_title": session_title,
+        "session_summary": session_summary,
         "conversation": conversation,
         "search": search,
         "message_type": message_type,
         "display_name": parser._format_project_name(project_name),
-        "current_view": view
+        "current_view": view,
+        "projects": projects,
+        "sessions": sessions
     }
 
     return templates.TemplateResponse("conversation.html", add_template_context(request, context))
@@ -898,3 +1054,32 @@ async def favorites_page(request: Request):
         "current_view": "favorites"
     }
     return templates.TemplateResponse("favorites.html", add_template_context(request, context))
+
+
+# ==================== Cache Management API Routes ====================
+
+@app.get("/api/cache/stats")
+async def get_cache_statistics():
+    """获取缓存统计信息"""
+    return get_cache_stats()
+
+
+@app.post("/api/cache/clear")
+async def clear_cache(cache_type: Optional[str] = Query(None)):
+    """清除缓存"""
+    if cache_type == "projects":
+        projects_cache.clear()
+    elif cache_type == "sessions":
+        sessions_cache.clear()
+    elif cache_type == "conversation":
+        conversation_cache.clear()
+    elif cache_type == "search":
+        search_cache.clear()
+    elif cache_type == "statistics":
+        statistics_cache.clear()
+    elif cache_type == "all" or cache_type is None:
+        clear_all_caches()
+    else:
+        raise HTTPException(status_code=400, detail=f"Unknown cache type: {cache_type}")
+    
+    return {"success": True, "message": f"Cache cleared: {cache_type or 'all'}"}

@@ -62,7 +62,7 @@
     <!-- Header -->
     <header class="bg-white dark:bg-gray-800 shadow-sm border-b border-gray-200 dark:border-gray-700 sticky top-0 z-40">
         <!-- Navigation Bar -->
-        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav class="w-full mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <!-- Brand & Navigation -->
                 <div class="flex items-center space-x-6">
@@ -138,6 +138,15 @@
                         </a>
                     </div>
 
+                    <!-- X-IDE Link -->
+                    <a href="/x-ide"
+                       target="_blank"
+                       class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm transition-all duration-200"
+                       title="X-IDE">
+                        <i class="bi bi-grid-1x2 text-base"></i>
+                        <span class="hidden lg:inline ml-2">X-IDE</span>
+                    </a>
+
                     <!-- Status Link -->
                     <a href="/health"
                        class="inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 hover:shadow-sm transition-all duration-200"
@@ -195,7 +204,7 @@
         <!-- Subtitle Banner (hidden on Dashboard) -->
         {% if current_view != 'dashboard' %}
         <div class="bg-gradient-to-r from-primary-50 to-primary-100 dark:from-gray-700 dark:to-gray-600 border-t border-primary-200 dark:border-gray-600">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-3">
                 <p class="text-sm text-center text-gray-700 dark:text-gray-200">
                     <i class="bi bi-search mr-1"></i>
                     {{ t('browse_search') }}
@@ -227,7 +236,7 @@
     </header>
 
     <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 min-h-screen">
+    <main class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 min-h-screen">
         {% block breadcrumb %}{% endblock %}
         {% block content %}{% endblock %}
     </main>
@@ -312,7 +321,7 @@
 
     <!-- Footer -->
     <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-12">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div class="w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
             <div class="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
                 <div class="flex items-center text-gray-600 dark:text-gray-400">
                     <i class="bi bi-code-slash mr-2"></i>

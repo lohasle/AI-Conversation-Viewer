@@ -75,12 +75,24 @@ class FavoritesDB:
             )
         """)
 
-        # Create indexes
+        # Create indexes for better query performance
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorites_view ON favorites(view)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorites_project ON favorites(project_name)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorites_created ON favorites(created_at DESC)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorites_type ON favorites(type)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorites_session ON favorites(session_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorites_composite ON favorites(view, project_name, session_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorite_tags_favorite ON favorite_tags(favorite_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorite_tags_tag ON favorite_tags(tag_id)")
+        
+        # Enable WAL mode for better concurrent access
+        cursor.execute("PRAGMA journal_mode=WAL")
+        
+        # Optimize SQLite settings
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA cache_size=-64000")  # 64MB cache
+        cursor.execute("PRAGMA temp_store=MEMORY")
 
         self.conn.commit()
 

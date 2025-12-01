@@ -1,4 +1,4 @@
-// Claude Code Viewer JavaScript
+// Claude Code Viewer JavaScript - Extended for X-IDE
 
 class ClaudeViewer {
     constructor() {
@@ -12,6 +12,10 @@ class ClaudeViewer {
         this.setupSearch();
         this.setupFavorites();
         this.setupAddFavoriteModal();
+        
+        // X-IDE Specific
+        this.setupGlobalSearchIDE();
+        this.setupFavoritesModalIDE();
     }
 
     setupEventListeners() {
@@ -19,6 +23,11 @@ class ClaudeViewer {
         const themeToggle = document.getElementById('theme-toggle');
         if (themeToggle) {
             themeToggle.addEventListener('click', () => this.toggleTheme());
+        }
+        
+        const themeToggleApp = document.getElementById('theme-toggle-app');
+        if (themeToggleApp) {
+            themeToggleApp.addEventListener('click', () => this.toggleTheme());
         }
 
         // Search form
@@ -101,6 +110,166 @@ class ClaudeViewer {
                 this.toggleFavorite(btn);
             });
         });
+    }
+    
+    // --- X-IDE Global Search ---
+    setupGlobalSearchIDE() {
+        const form = document.getElementById('global-search-form-ide');
+        if (!form) return;
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const input = document.getElementById('search-input-ide');
+            const query = input.value.trim();
+            if (!query) return;
+            
+            await this.performGlobalSearchIDE(query);
+        });
+    }
+    
+    async performGlobalSearchIDE(query) {
+        const resultsContainer = document.getElementById('search-results-container-ide');
+        const resultsDiv = document.getElementById('search-results-ide');
+        const resultsCount = document.getElementById('search-results-count-ide');
+        const initialState = document.getElementById('search-initial-state-ide');
+        
+        if (!resultsDiv) return;
+
+        // Show loading
+        initialState.classList.add('hidden');
+        resultsContainer.classList.remove('hidden');
+        resultsDiv.innerHTML = `
+            <div class="flex items-center justify-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+        `;
+        
+        try {
+            const response = await fetch(`/api/search/global?q=${encodeURIComponent(query)}&limit=20`);
+            const data = await response.json();
+            
+            resultsCount.textContent = `(${data.total} results)`;
+            
+            if (data.results.length === 0) {
+                resultsDiv.innerHTML = `
+                    <div class="text-center py-8 text-gray-500">
+                        No results found for "${query}"
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            for (const result of data.results) {
+                html += `
+                    <div class="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4 hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors cursor-pointer"
+                         onclick="window.location.href='/x-ide?view=${result.view}&project_name=${encodeURIComponent(result.project_name)}&session_id=${encodeURIComponent(result.session_id)}&search=${encodeURIComponent(query)}'">
+                        <div class="flex justify-between items-start mb-1">
+                            <h4 class="font-medium text-gray-900 dark:text-white line-clamp-1">${result.session_title}</h4>
+                            <span class="text-xs bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 py-0.5 rounded uppercase font-bold">${result.view}</span>
+                        </div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">${result.project_display_name}</p>
+                        <div class="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+                            ${result.first_messages && result.first_messages.length > 0 ? result.first_messages[0].content.substring(0, 150) : 'No preview available'}
+                        </div>
+                    </div>
+                `;
+            }
+            resultsDiv.innerHTML = html;
+            
+        } catch (error) {
+            console.error('Search failed:', error);
+            resultsDiv.innerHTML = '<div class="text-center text-red-500">Search failed</div>';
+        }
+    }
+    
+    // --- X-IDE Favorites Modal ---
+    setupFavoritesModalIDE() {
+        window.openFavoritesModal = () => {
+             const modal = document.getElementById('favorites-list-modal');
+             if (modal) {
+                 modal.classList.remove('hidden');
+                 this.loadFavoritesListIDE();
+             }
+        };
+    }
+    
+    async loadFavoritesListIDE() {
+        const container = document.getElementById('favorites-list-container');
+        if (!container) return;
+        
+        container.innerHTML = `
+            <div class="flex items-center justify-center h-full">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+        `;
+        
+        try {
+            const response = await fetch('/api/favorites?limit=50');
+            const data = await response.json();
+            
+            if (data.favorites.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-full text-gray-500">
+                        <i class="bi bi-star text-4xl mb-2 opacity-20"></i>
+                        <p>No favorites yet</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '<div class="space-y-3">';
+            for (const fav of data.favorites) {
+                const link = fav.type === 'session' 
+                    ? `/x-ide?view=${fav.view}&project_name=${encodeURIComponent(fav.project_name)}&session_id=${encodeURIComponent(fav.session_id)}`
+                    : `/x-ide?view=${fav.view}&project_name=${encodeURIComponent(fav.project_name)}&session_id=${encodeURIComponent(fav.session_id)}&highlight=${fav.message_line}`;
+                
+                html += `
+                    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:shadow-md transition-shadow relative group">
+                         <div class="flex justify-between items-start">
+                             <div>
+                                 <h4 class="font-medium text-gray-900 dark:text-white mb-1">
+                                     <a href="${link}" class="hover:underline">${fav.title}</a>
+                                 </h4>
+                                 <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                                     ${fav.type === 'session' ? '<i class="bi bi-journal-bookmark mr-1"></i>Session' : '<i class="bi bi-chat-square-text mr-1"></i>Message'} 
+                                     • ${fav.view} • ${fav.project_name}
+                                 </p>
+                                 ${fav.annotation ? `<div class="text-sm text-gray-600 dark:text-gray-300 bg-gray-50 dark:bg-gray-900/50 p-2 rounded italic">"${fav.annotation}"</div>` : ''}
+                                 ${fav.content_preview ? `<div class="mt-2 text-xs text-gray-500 dark:text-gray-400 line-clamp-2 border-l-2 border-gray-300 dark:border-gray-600 pl-2">${fav.content_preview}</div>` : ''}
+                             </div>
+                             <button onclick="window.claudeViewer.removeFavoriteById('${fav.id}', this)" class="text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" title="Remove">
+                                 <i class="bi bi-trash"></i>
+                             </button>
+                         </div>
+                    </div>
+                `;
+            }
+            html += '</div>';
+            container.innerHTML = html;
+            
+        } catch (error) {
+             console.error('Failed to load favorites:', error);
+             container.innerHTML = '<div class="text-center text-red-500">Failed to load favorites</div>';
+        }
+    }
+    
+    async removeFavoriteById(id, btn) {
+        if(!confirm('Are you sure you want to remove this favorite?')) return;
+        
+        try {
+            const response = await fetch(`/api/favorites/${id}`, { method: 'DELETE' });
+            if(response.ok) {
+                // Reload list
+                this.loadFavoritesListIDE();
+                this.updateFavoritesCount();
+                // Update current page status if needed
+                const toggleBtn = document.querySelector(`[data-favorite-id="${id}"]`);
+                if(toggleBtn) this.markAsNotFavorited(toggleBtn);
+            }
+        } catch(e) {
+            console.error(e);
+        }
     }
 
     async updateFavoritesCount() {
@@ -598,13 +767,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Setup pagination if present
     window.claudeViewer.setupPagination();
+    
+    // Add X-IDE global search trigger
+    window.openGlobalSearch = () => {
+        document.getElementById('global-search-modal').classList.remove('hidden');
+        document.getElementById('search-input-ide').focus();
+    };
 
     // Add loading state to navigation links
     const navLinks = document.querySelectorAll('a[href^="/"], a[href^="?"]');
     navLinks.forEach(link => {
         link.addEventListener('click', (e) => {
-            // Only show loader for navigation links, not anchors
-            if (!link.getAttribute('href').startsWith('#')) {
+            // Only show loader for navigation links, not anchors or target="_blank"
+            if (!link.getAttribute('href').startsWith('#') && link.getAttribute('target') !== '_blank') {
                 showPageLoader();
             }
         });

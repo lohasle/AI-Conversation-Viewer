@@ -1436,58 +1436,180 @@ class JSONLParser:
         except Exception:
             return None
 
+    def get_session_summary(self, project_name: str, session_id: str) -> Optional[str]:
+        """
+        Extract full session summary if available
+        
+        Returns:
+            Full summary text or None if no summary exists
+        """
+        try:
+            if self.parser_type == "claude":
+                session_path = os.path.join(self.projects_path, project_name, f"{session_id}.jsonl")
+            elif self.parser_type == "qwen":
+                project_path = os.path.join(self.projects_path, project_name)
+                session_path = os.path.join(project_path, 'chats', f"{session_id}.json")
+            elif self.parser_type == "kiro":
+                project_path = os.path.join(self.projects_path, project_name)
+                workspace_json = os.path.join(project_path, 'workspace.json')
+                if os.path.exists(workspace_json):
+                    with open(workspace_json, 'r', encoding='utf-8') as f:
+                        data = json.load(f)
+                        folder_uri = data.get('folder', '')
+                        folder_path = folder_uri.replace('file://', '')
+                        sessions_dir_name = self._path_to_base64(folder_path)
+                        sessions_path = os.path.join(self.kiro_sessions_path, sessions_dir_name)
+                        session_path = os.path.join(sessions_path, f"{session_id}.json")
+                else:
+                    return None
+            elif self.parser_type in ["cursor", "trae"]:
+                project_path = os.path.join(self.projects_path, project_name)
+                session_path = os.path.join(project_path, 'state.vscdb')
+            else:
+                return None
+
+            if not os.path.exists(session_path):
+                return None
+
+            if self.parser_type == "claude":
+                with open(session_path, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        try:
+                            data = json.loads(line.strip())
+                            if data.get("type") == "summary":
+                                return data.get("summary", "").strip()
+                        except json.JSONDecodeError:
+                            continue
+                return None
+
+            elif self.parser_type == "qwen":
+                with open(session_path, 'r', encoding='utf-8') as f:
+                    session_data = json.load(f)
+                    messages = session_data.get('messages', [])
+                    for msg in messages:
+                        if msg.get('type') == 'summary':
+                            return msg.get('content', '').strip()
+                return None
+
+            elif self.parser_type == "kiro":
+                with open(session_path, 'r', encoding='utf-8') as f:
+                    session_data = json.load(f)
+                    history = session_data.get('history', [])
+                    for msg in history:
+                        message = msg.get('message', {})
+                        if message.get('type') == 'summary':
+                            return message.get('content', '').strip()
+                return None
+
+            elif self.parser_type in ["cursor", "trae"]:
+                prompts = self._cursor_query_prompts(session_path)
+                for prompt in prompts:
+                    if prompt.get('type') == 'summary':
+                        return prompt.get('content', '').strip()
+                return None
+
+        except Exception:
+            return None
+
     def _extract_session_title(self, file_path: str, max_length: int = 100) -> str:
-        """Extract session title from first user message"""
+        """
+        Extract session title with priority:
+        1. Summary content (if available)
+        2. First user message
+        3. "Untitled Session" as fallback
+        """
         try:
             if self.parser_type == "claude":
                 # Read Claude JSONL file
+                summary_content = None
+                first_user_message = None
+                
                 with open(file_path, 'r', encoding='utf-8') as f:
                     for line in f:
                         try:
                             data = json.loads(line.strip())
-                            # Look for user messages
-                            if data.get("type") == "user":
-                                message_data = data.get("message", {})
-                                content = message_data.get("content", "")
-                                if isinstance(content, str) and content.strip():
-                                    return content.strip()[:max_length]
-                                elif isinstance(content, list):
-                                    # Extract text from structured content
-                                    for item in content:
-                                        if isinstance(item, dict) and item.get("type") == "text":
-                                            text = item.get("text", "").strip()
-                                            if text:
-                                                return text[:max_length]
-                            elif data.get("role") == "user":
-                                # Legacy format
-                                content = data.get("content", "")
-                                if isinstance(content, str) and content.strip():
-                                    return content.strip()[:max_length]
+                            
+                            # Priority 1: Look for summary
+                            if data.get("type") == "summary":
+                                summary = data.get("summary", "").strip()
+                                if summary:
+                                    summary_content = summary[:max_length]
+                                    break  # Found summary, use it immediately
+                            
+                            # Priority 2: Look for first user message
+                            if first_user_message is None:
+                                if data.get("type") == "user":
+                                    message_data = data.get("message", {})
+                                    content = message_data.get("content", "")
+                                    if isinstance(content, str) and content.strip():
+                                        first_user_message = content.strip()[:max_length]
+                                    elif isinstance(content, list):
+                                        # Extract text from structured content
+                                        for item in content:
+                                            if isinstance(item, dict) and item.get("type") == "text":
+                                                text = item.get("text", "").strip()
+                                                if text:
+                                                    first_user_message = text[:max_length]
+                                                    break
+                                elif data.get("role") == "user":
+                                    # Legacy format
+                                    content = data.get("content", "")
+                                    if isinstance(content, str) and content.strip():
+                                        first_user_message = content.strip()[:max_length]
                         except json.JSONDecodeError:
                             continue
-                return "Untitled Session"
+                
+                # Return summary if found, otherwise first user message
+                return summary_content or first_user_message or "Untitled Session"
 
             elif self.parser_type == "qwen":
                 # Read Qwen JSON file
                 with open(file_path, 'r', encoding='utf-8') as f:
                     session_data = json.load(f)
                     messages = session_data.get('messages', [])
+                    
+                    # Look for summary in messages
+                    summary_content = None
+                    first_user_message = None
+                    
                     for msg in messages:
-                        if msg.get('type') == 'user':
+                        # Check for summary type
+                        if msg.get('type') == 'summary':
                             content = msg.get('content', '').strip()
                             if content:
-                                return content[:max_length]
-                return "Untitled Session"
+                                summary_content = content[:max_length]
+                                break
+                        
+                        # Get first user message
+                        if first_user_message is None and msg.get('type') == 'user':
+                            content = msg.get('content', '').strip()
+                            if content:
+                                first_user_message = content[:max_length]
+                    
+                    return summary_content or first_user_message or "Untitled Session"
 
             elif self.parser_type in ["cursor", "trae", "kiro"]:
                 # Read from database
                 prompts = self._cursor_query_prompts(file_path)
+                
+                summary_content = None
+                first_user_message = None
+                
                 for prompt in prompts:
-                    if prompt.get('role') == 'user':
+                    # Check for summary
+                    if prompt.get('type') == 'summary':
                         content = prompt.get('content', '').strip()
                         if content:
-                            return content[:max_length]
-                return "Untitled Session"
+                            summary_content = content[:max_length]
+                            break
+                    
+                    # Get first user message
+                    if first_user_message is None and prompt.get('role') == 'user':
+                        content = prompt.get('content', '').strip()
+                        if content:
+                            first_user_message = content[:max_length]
+                
+                return summary_content or first_user_message or "Untitled Session"
 
         except Exception:
             return "Untitled Session"
