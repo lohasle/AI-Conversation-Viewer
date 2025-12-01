@@ -92,7 +92,7 @@
         <div class="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 border border-blue-200 dark:border-blue-700 rounded-lg p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-blue-600 dark:text-blue-400">Total Favorites</p>
+                    <p class="text-sm font-medium text-blue-600 dark:text-blue-400">{{ t('total_favorites') }}</p>
                     <p id="stat-total" class="text-3xl font-bold text-blue-900 dark:text-blue-100 mt-2">0</p>
                 </div>
                 <div class="bg-blue-200 dark:bg-blue-700 p-3 rounded-full">
@@ -105,7 +105,7 @@
         <div class="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/20 dark:to-green-800/20 border border-green-200 dark:border-green-700 rounded-lg p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-green-600 dark:text-green-400">Sessions</p>
+                    <p class="text-sm font-medium text-green-600 dark:text-green-400">{{ t('sessions') }}</p>
                     <p id="stat-sessions" class="text-3xl font-bold text-green-900 dark:text-green-100 mt-2">0</p>
                 </div>
                 <div class="bg-green-200 dark:bg-green-700 p-3 rounded-full">
@@ -118,7 +118,7 @@
         <div class="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/20 dark:to-purple-800/20 border border-purple-200 dark:border-purple-700 rounded-lg p-6">
             <div class="flex items-center justify-between">
                 <div>
-                    <p class="text-sm font-medium text-purple-600 dark:text-purple-400">Messages</p>
+                    <p class="text-sm font-medium text-purple-600 dark:text-purple-400">{{ t('messages') }}</p>
                     <p id="stat-messages" class="text-3xl font-bold text-purple-900 dark:text-purple-100 mt-2">0</p>
                 </div>
                 <div class="bg-purple-200 dark:bg-purple-700 p-3 rounded-full">
@@ -324,9 +324,12 @@ class FavoritesManager {
             const response = await fetch('/api/favorites/statistics');
             if (response.ok) {
                 const stats = await response.json();
+                console.log('Statistics loaded:', stats);
                 document.getElementById('stat-total').textContent = stats.total || 0;
                 document.getElementById('stat-sessions').textContent = stats.by_type?.session || 0;
                 document.getElementById('stat-messages').textContent = stats.by_type?.message || 0;
+            } else {
+                console.error('Failed to load statistics:', response.status, response.statusText);
             }
         } catch (error) {
             console.error(FAVORITES_TRANSLATIONS.failed_load_statistics, error);

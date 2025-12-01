@@ -776,6 +776,52 @@ async def get_favorites(
         raise HTTPException(status_code=500, detail=f"Failed to get favorites: {str(e)}")
 
 
+@app.get("/api/favorites/statistics")
+async def get_favorites_statistics():
+    """Get favorites statistics"""
+    try:
+        return favorites_db.get_statistics()
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get statistics: {str(e)}")
+
+
+@app.get("/api/favorites/check/{view}/{project_name}/{session_id}")
+async def check_favorite_exists(
+    view: str,
+    project_name: str,
+    session_id: str,
+    message_line: Optional[int] = Query(None)
+):
+    """Check if a favorite exists"""
+    try:
+        favorite_id = favorites_db.check_favorite_exists(
+            view=view,
+            project_name=project_name,
+            session_id=session_id,
+            message_line=message_line
+        )
+
+        return {
+            "exists": favorite_id is not None,
+            "favorite_id": favorite_id
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to check favorite: {str(e)}")
+
+
+@app.get("/api/tags", response_model=List[TagModel])
+async def get_all_tags():
+    """Get all tags with usage counts"""
+    try:
+        tags = favorites_db.get_all_tags()
+        return [TagModel(**tag) for tag in tags]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get tags: {str(e)}")
+
+
 @app.get("/api/favorites/{favorite_id}", response_model=FavoriteModel)
 async def get_favorite(favorite_id: str):
     """Get a single favorite by ID"""
@@ -842,52 +888,6 @@ async def delete_favorite(favorite_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to delete favorite: {str(e)}")
-
-
-@app.get("/api/favorites/check/{view}/{project_name}/{session_id}")
-async def check_favorite_exists(
-    view: str,
-    project_name: str,
-    session_id: str,
-    message_line: Optional[int] = Query(None)
-):
-    """Check if a favorite exists"""
-    try:
-        favorite_id = favorites_db.check_favorite_exists(
-            view=view,
-            project_name=project_name,
-            session_id=session_id,
-            message_line=message_line
-        )
-
-        return {
-            "exists": favorite_id is not None,
-            "favorite_id": favorite_id
-        }
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to check favorite: {str(e)}")
-
-
-@app.get("/api/tags", response_model=List[TagModel])
-async def get_all_tags():
-    """Get all tags with usage counts"""
-    try:
-        tags = favorites_db.get_all_tags()
-        return [TagModel(**tag) for tag in tags]
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get tags: {str(e)}")
-
-
-@app.get("/api/favorites/statistics")
-async def get_favorites_statistics():
-    """Get favorites statistics"""
-    try:
-        return favorites_db.get_statistics()
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get statistics: {str(e)}")
 
 
 @app.get("/favorites", response_class=HTMLResponse)
