@@ -9,10 +9,10 @@
         <div>
             <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
                 <i class="bi bi-star-fill text-amber-500 mr-3"></i>
-                Favorites
+                {{ t('favorites') }}
             </h1>
             <p class="mt-2 text-gray-600 dark:text-gray-400">
-                Your saved conversations and messages
+                {{ t('your_saved_conversations') }}
             </p>
         </div>
     </div>
@@ -25,27 +25,27 @@
                 <div class="lg:col-span-2">
                     <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <i class="bi bi-search mr-1"></i>
-                        Search Favorites
+                        {{ t('search_favorites') }}
                     </label>
                     <input type="text"
                            id="search"
                            name="search"
                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                           placeholder="Search in title and annotations...">
+                           placeholder="{{ t('search_in_titles_annotations') }}">
                 </div>
 
                 <!-- Type Filter -->
                 <div>
                     <label for="type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <i class="bi bi-funnel mr-1"></i>
-                        Type
+                        {{ t('type') }}
                     </label>
                     <select id="type"
                             name="type"
                             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition">
-                        <option value="">All Types</option>
-                        <option value="session">Sessions</option>
-                        <option value="message">Messages</option>
+                        <option value="">{{ t('all_types') }}</option>
+                        <option value="session">{{ t('sessions') }}</option>
+                        <option value="message">{{ t('messages') }}</option>
                     </select>
                 </div>
 
@@ -53,17 +53,17 @@
                 <div>
                     <label for="view" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <i class="bi bi-eye mr-1"></i>
-                        IDE
+                        {{ t('view') }}
                     </label>
                     <select id="view"
                             name="view"
                             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition">
-                        <option value="">All IDEs</option>
-                        <option value="claude">Claude</option>
-                        <option value="qwen">Qwen</option>
-                        <option value="cursor">Cursor</option>
-                        <option value="trae">Trae</option>
-                        <option value="kiro">Kiro</option>
+                        <option value="">{{ t('all_ides') }}</option>
+                        <option value="claude">{{ t('claude') }}</option>
+                        <option value="qwen">{{ t('qwen') }}</option>
+                        <option value="cursor">{{ t('cursor') }}</option>
+                        <option value="trae">{{ t('trae') }}</option>
+                        <option value="kiro">{{ t('kiro') }}</option>
                     </select>
                 </div>
             </div>
@@ -74,13 +74,13 @@
                         id="apply-filters"
                         class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
                     <i class="bi bi-funnel-fill mr-2"></i>
-                    Apply Filters
+                    {{ t('apply_filters') }}
                 </button>
                 <button type="button"
                         id="clear-filters"
                         class="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors">
                     <i class="bi bi-x-circle mr-2"></i>
-                    Clear Filters
+                    {{ t('clear_filters') }}
                 </button>
             </div>
         </form>
@@ -132,7 +132,7 @@
     <div id="tags-container" class="hidden">
         <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-4">
             <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
-                <i class="bi bi-tags mr-2"></i>Filter by Tags
+                <i class="bi bi-tags mr-2"></i>{{ t('filter_by_tags') }}
             </h3>
             <div id="tags-list" class="flex flex-wrap gap-2"></div>
         </div>
@@ -150,9 +150,9 @@
                         <i class="bi bi-star text-6xl text-gray-400 dark:text-gray-600"></i>
                     </div>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">No Favorites Yet</h3>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ t('no_favorites_yet') }}</h3>
                 <p class="text-gray-600 dark:text-gray-400">
-                    Start adding favorites by clicking the star icon on conversations and messages.
+                    {{ t('no_favorites_desc') }}
                 </p>
             </div>
         </div>
@@ -161,7 +161,7 @@
         <div id="loading-state" class="flex items-center justify-center p-12">
             <div class="text-center">
                 <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-                <p class="mt-4 text-gray-600 dark:text-gray-400">Loading favorites...</p>
+                <p class="mt-4 text-gray-600 dark:text-gray-400">{{ t('loading_favorites') }}</p>
             </div>
         </div>
     </div>
@@ -174,7 +174,7 @@
                 <div class="flex items-center justify-between">
                     <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
                         <i class="bi bi-pencil-square text-primary-600 dark:text-primary-400 mr-2"></i>
-                        Edit Annotation
+                        {{ t('edit_annotation') }}
                     </h2>
                     <button id="close-modal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
                         <i class="bi bi-x-lg text-xl"></i>
@@ -195,15 +195,15 @@
                     <div>
                         <label for="annotation-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             <i class="bi bi-chat-left-text mr-1"></i>
-                            Annotation
+                            {{ t('annotation') }}
                         </label>
                         <textarea id="annotation-input"
                                   rows="6"
                                   class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition resize-none"
-                                  placeholder="Add your notes, thoughts, or comments about this favorite..."></textarea>
+                                  placeholder="{{ t('add_notes_comments') }} {{ t('about') }} {{ t('this') }} {{ t('favorite') }}..."></textarea>
                         <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
                             <i class="bi bi-info-circle mr-1"></i>
-                            This annotation will help you remember why you saved this item.
+                            {{ t('remember_annotation') }}
                         </p>
                     </div>
 
@@ -211,10 +211,10 @@
                     <div>
                         <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                             <i class="bi bi-tags mr-1"></i>
-                            Tags
+                            {{ t('tags') }}
                         </label>
                         <div id="modal-tags" class="flex flex-wrap gap-2 min-h-[2rem] p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-                            <span class="text-sm text-gray-500 dark:text-gray-400 italic">Tag management coming soon...</span>
+                            <span class="text-sm text-gray-500 dark:text-gray-400 italic">{{ t('tag_management_soon') }}</span>
                         </div>
                     </div>
                 </div>
@@ -225,11 +225,11 @@
                 <div class="flex items-center justify-end space-x-3">
                     <button id="cancel-edit" class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 font-medium transition-colors">
                         <i class="bi bi-x-circle mr-2"></i>
-                        Cancel
+                        {{ t('cancel') }}
                     </button>
                     <button id="save-annotation" class="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors">
                         <i class="bi bi-check-circle mr-2"></i>
-                        Save Annotation
+                        {{ t('save') }} {{ t('annotation') }}
                     </button>
                 </div>
             </div>
@@ -531,7 +531,7 @@ class FavoritesManager {
     }
 
     async removeFavorite(favoriteId) {
-        if (!confirm('Are you sure you want to remove this favorite?')) {
+        if (!confirm('{{ t("confirm_remove_favorite") }}')) {
             return;
         }
 
@@ -541,16 +541,16 @@ class FavoritesManager {
             });
 
             if (response.ok) {
-                window.claudeViewer.showNotification('Favorite removed', 'success');
+                window.claudeViewer.showNotification('{{ t("removed_from_favorites") }}', 'success');
                 this.loadStatistics();
                 this.loadTags();
                 this.loadFavorites();
             } else {
-                window.claudeViewer.showNotification('Failed to remove favorite', 'error');
+                window.claudeViewer.showNotification('{{ t("failed_remove_favorites") }}', 'error');
             }
         } catch (error) {
             console.error('Failed to remove favorite:', error);
-            window.claudeViewer.showNotification('Failed to remove favorite', 'error');
+            window.claudeViewer.showNotification('{{ t("failed_remove_favorites") }}', 'error');
         }
     }
 
@@ -633,7 +633,7 @@ class FavoritesManager {
         try {
             // Show loading state
             saveBtn.disabled = true;
-            saveBtn.innerHTML = '<i class="bi bi-hourglass-split mr-2 animate-spin"></i>Saving...';
+            saveBtn.innerHTML = '<i class="bi bi-hourglass-split mr-2 animate-spin"></i>{{ t("saving") }}...';
 
             const response = await fetch(`/api/favorites/${this.currentEditingId}`, {
                 method: 'PUT',
@@ -646,16 +646,16 @@ class FavoritesManager {
             });
 
             if (response.ok) {
-                window.claudeViewer.showNotification('Annotation saved successfully', 'success');
+                window.claudeViewer.showNotification('{{ t("annotation_saved_successfully") }}', 'success');
                 this.closeEditModal();
                 this.loadFavorites(); // Reload to show updated annotation
             } else {
                 const error = await response.json();
-                window.claudeViewer.showNotification('Failed to save annotation: ' + (error.detail || 'Unknown error'), 'error');
+                window.claudeViewer.showNotification('{{ t("failed_to_save_annotation") }}: ' + (error.detail || 'Unknown error'), 'error');
             }
         } catch (error) {
             console.error('Failed to save annotation:', error);
-            window.claudeViewer.showNotification('Failed to save annotation', 'error');
+            window.claudeViewer.showNotification('{{ t("failed_to_save_annotation") }}', 'error');
         } finally {
             // Restore button state
             saveBtn.disabled = false;

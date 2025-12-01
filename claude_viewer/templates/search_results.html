@@ -38,12 +38,12 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
             <i class="bi bi-search mr-3 text-primary-600 dark:text-primary-400"></i>
-            Search Results
+            {{ t('search_results') }}
         </h1>
         <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-2">
             <span class="text-sm text-gray-600 dark:text-gray-400">
                 <span class="font-semibold text-gray-900 dark:text-white">{{ total_results }}</span>
-                result{{ 's' if total_results != 1 else '' }} for
+                {{ t('result') }}
                 <span class="font-semibold text-primary-600 dark:text-primary-400">"{{ query }}"</span>
             </span>
         </div>
@@ -60,12 +60,12 @@
                            name="q"
                            value="{{ query }}"
                            class="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                           placeholder="Search in all conversation content...">
+                           placeholder="{{ t('search_content_placeholder') }}">
                 </div>
                 <button type="submit"
                         class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors flex items-center whitespace-nowrap">
                     <i class="bi bi-search mr-2"></i>
-                    Search
+                    {{ t('search_button') }}
                 </button>
             </div>
         </form>
@@ -94,7 +94,7 @@
                                         </span>
                                         <span class="flex items-center">
                                             <i class="bi bi-check-circle mr-1 text-green-600 dark:text-green-400"></i>
-                                            {{ result.matching_messages_count }} match{{ 'es' if result.matching_messages_count != 1 else '' }}
+                                            {{ result.matching_messages_count }} {{ t('matches') }}
                                         </span>
                                         <span class="flex items-center">
                                             <i class="bi bi-clock mr-1"></i>
@@ -139,7 +139,7 @@
                                 <a href="/conversation/{{ result.project.name }}/{{ result.session.id }}?view={{ current_view or 'qwen' }}&search={{ query }}"
                                    class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors whitespace-nowrap">
                                     <i class="bi bi-eye mr-2"></i>
-                                    View Session
+                                    {{ t('view_session') }}
                                 </a>
                             </div>
                         </div>
@@ -156,22 +156,22 @@
                         <i class="bi bi-search text-6xl text-gray-400 dark:text-gray-600"></i>
                     </div>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">No Results Found</h3>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ t('no_results_found') }}</h3>
                 <p class="text-gray-600 dark:text-gray-400">
-                    No conversations contain <span class="font-semibold">"{{ query }}"</span>.
+                    {{ t('no_results_desc') }} <span class="font-semibold">"{{ query }}"</span>.
                     <br>
-                    Try a different search term or check your spelling.
+                    {{ t('try_different_term') }}.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
                     <a href="/sessions?view={{ current_view or 'qwen' }}"
                        class="inline-flex items-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
                         <i class="bi bi-folder2-open mr-2"></i>
-                        Back to Projects
+                        {{ t('back_to_projects') }}
                     </a>
                     <a href="/"
                        class="inline-flex items-center px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors">
                         <i class="bi bi-speedometer2 mr-2"></i>
-                        Dashboard
+                        {{ t('dashboard') }}
                     </a>
                 </div>
             </div>

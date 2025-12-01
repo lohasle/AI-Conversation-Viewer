@@ -65,29 +65,29 @@
                 <div class="lg:col-span-2">
                     <label for="search" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <i class="bi bi-search mr-1"></i>
-                        Search Messages
+                        {{ t('search_messages') }}
                     </label>
                     <input type="text"
                            id="search"
                            name="search"
                            value="{{ search or '' }}"
                            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                           placeholder="Search in conversation content...">
+                           placeholder="{{ t('search_content_placeholder') }}">
                 </div>
 
                 <!-- Message Type Filter -->
                 <div>
                     <label for="message_type" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <i class="bi bi-funnel mr-1"></i>
-                        Message Type
+                        {{ t('message_type') }}
                     </label>
                     <select id="message_type"
                             name="message_type"
                             class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition auto-filter">
-                        <option value="">All Messages</option>
-                        <option value="user" {{ 'selected' if message_type == 'user' else '' }}>User Messages</option>
-                        <option value="assistant" {{ 'selected' if message_type == 'assistant' else '' }}>Assistant Messages</option>
-                        <option value="summary" {{ 'selected' if message_type == 'summary' else '' }}>Summaries</option>
+                        <option value="">{{ t('all_messages') }}</option>
+                        <option value="user" {{ 'selected' if message_type == 'user' else '' }}>{{ t('user_messages') }}</option>
+                        <option value="assistant" {{ 'selected' if message_type == 'assistant' else '' }}>{{ t('assistant_messages') }}</option>
+                        <option value="summary" {{ 'selected' if message_type == 'summary' else '' }}>{{ t('summaries') }}</option>
                     </select>
                 </div>
 
@@ -95,7 +95,7 @@
                 <div>
                     <label for="per_page" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                         <i class="bi bi-card-list mr-1"></i>
-                        Per Page
+                        {{ t('per_page') }}
                     </label>
                     <select id="per_page"
                             name="per_page"
@@ -112,13 +112,13 @@
                 <button type="submit"
                         class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
                     <i class="bi bi-search mr-2"></i>
-                    Search
+                    {{ t('search_button') }}
                 </button>
                 <button type="button"
                         id="clear-filters"
                         class="inline-flex items-center px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors">
                     <i class="bi bi-x-circle mr-2"></i>
-                    Clear Filters
+                    {{ t('clear_filters') }}
                 </button>
             </div>
         </form>
@@ -129,7 +129,7 @@
         <div>
             <h2 class="text-lg font-semibold text-gray-900 dark:text-white flex items-center">
                 <i class="bi bi-chat-text mr-2 text-primary-600 dark:text-primary-400"></i>
-                Conversation Messages
+                {{ t('conversation_messages') }}
             </h2>
             {% if search %}
                 <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
@@ -139,8 +139,8 @@
             {% endif %}
         </div>
         <div class="text-sm text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-4 py-2 rounded-lg border border-gray-200 dark:border-gray-700">
-            Showing <span class="font-semibold text-gray-900 dark:text-white">{{ conversation.messages|length }}</span> of
-            <span class="font-semibold text-gray-900 dark:text-white">{{ conversation.total }}</span> messages
+            {{ t('showing') }} <span class="font-semibold text-gray-900 dark:text-white">{{ conversation.messages|length }}</span> {{ t('of') }}
+            <span class="font-semibold text-gray-900 dark:text-white">{{ conversation.total }}</span> {{ t('messages') }}
         </div>
     </div>
 
@@ -175,13 +175,13 @@
                                     {% endif %}">
                                     {% if message.role == 'user' or message.display_type == 'User' %}
                                         <i class="bi bi-person-circle text-xl"></i>
-                                        <span>User</span>
+                                        <span>{{ t('user') }}</span>
                                     {% elif message.role == 'assistant' or message.display_type == 'Assistant' %}
                                         <i class="bi bi-robot text-xl"></i>
-                                        <span>{% if current_view == 'claude' %}Claude{% elif current_view == 'cursor' %}Cursor{% elif current_view == 'trae' %}Trae{% elif current_view == 'kiro' %}Kiro{% else %}Qwen{% endif %}</span>
+                                        <span>{% if current_view == 'claude' %}{{ t('claude') if t('claude') else 'Claude' }}{% elif current_view == 'cursor' %}{{ t('cursor') if t('cursor') else 'Cursor' }}{% elif current_view == 'trae' %}{{ t('trae') if t('trae') else 'Trae' }}{% elif current_view == 'kiro' %}{{ t('kiro') if t('kiro') else 'Kiro' }}{% else %}{{ t('qwen') if t('qwen') else 'Qwen' }}{% endif %}</span>
                                     {% elif message.type == 'summary' %}
                                         <i class="bi bi-journal-text text-xl"></i>
-                                        <span>Summary</span>
+                                        <span>{{ t('summary') }}</span>
                                     {% else %}
                                         <i class="bi bi-gear text-xl"></i>
                                         <span>{{ message.display_type }}</span>
@@ -192,7 +192,7 @@
                                 {% if message.has_code %}
                                     <span class="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300">
                                         <i class="bi bi-code-slash mr-1"></i>
-                                        Code
+                                        {{ t('code') }}
                                     </span>
                                 {% endif %}
                             </div>
@@ -200,7 +200,7 @@
                             <!-- Message Meta & Actions -->
                             <div class="flex items-center space-x-3">
                                 <div class="text-xs text-gray-500 dark:text-gray-500">
-                                    Line {{ message.line_number }}
+                                    {{ t('line') }} {{ message.line_number }}
                                     {% if message.timestamp %}
                                         <span class="mx-1">•</span>
                                         {{ message.timestamp }}
@@ -241,12 +241,12 @@
                         <i class="bi bi-chat-square-x text-6xl text-gray-400 dark:text-gray-600"></i>
                     </div>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">No Messages Found</h3>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ t('no_messages_found') }}</h3>
                 <p class="text-gray-600 dark:text-gray-400">
                     {% if search or message_type %}
-                        Try adjusting your search filters or clear them to see all messages.
+                        {{ t('adjust_filters') }}
                     {% else %}
-                        This conversation appears to be empty or couldn't be loaded.
+                        {{ t('conversation_empty') }}
                     {% endif %}
                 </p>
                 {% if search or message_type %}
@@ -254,7 +254,7 @@
                             id="clear-filters"
                             class="inline-flex items-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors mt-4">
                         <i class="bi bi-x-circle mr-2"></i>
-                        Clear Filters
+                        {{ t('clear_filters') }}
                     </button>
                 {% endif %}
             </div>
@@ -267,9 +267,9 @@
             <div class="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <!-- Page Info -->
                 <div class="text-sm text-gray-600 dark:text-gray-400">
-                    Page <span class="font-semibold text-gray-900 dark:text-white">{{ conversation.page }}</span> of
+                    {{ t('page') }} <span class="font-semibold text-gray-900 dark:text-white">{{ conversation.page }}</span> {{ t('of') }}
                     <span class="font-semibold text-gray-900 dark:text-white">{{ conversation.total_pages }}</span>
-                    <span class="hidden sm:inline">({{ conversation.total }} total messages)</span>
+                    <span class="hidden sm:inline">({{ conversation.total }} {{ t('total_messages') }})</span>
                 </div>
 
                 <!-- Pagination Controls -->

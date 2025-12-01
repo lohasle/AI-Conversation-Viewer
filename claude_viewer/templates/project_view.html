@@ -45,7 +45,7 @@
                 <span class="text-sm text-gray-600 dark:text-gray-400">
                     <i class="bi bi-chat-dots mr-1"></i>
                     <span class="font-semibold text-gray-900 dark:text-white">{{ sessions|length }}</span>
-                    session{{ 's' if sessions|length != 1 else '' }}
+                    {{ t('sessions') }}
                 </span>
             </div>
         </div>
@@ -69,7 +69,7 @@
                                     data-view="{{ current_view or 'qwen' }}"
                                     data-project="{{ project_name }}"
                                     data-session="{{ session.id }}"
-                                    title="Favorite this session">
+                                    title="{{ t('favorite_session_tooltip') }}">
                                 <i class="bi bi-star text-lg"></i>
                             </button>
                         </div>
@@ -78,11 +78,11 @@
                         <div class="space-y-2">
                             <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                 <i class="bi bi-chat-dots w-5"></i>
-                                <span class="ml-2">{{ session.message_count }} messages</span>
+                                <span class="ml-2">{{ session.message_count }} {{ t('messages') }}</span>
                             </div>
                             <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                 <i class="bi bi-hdd w-5"></i>
-                                <span class="ml-2" data-filesize="{{ session.size }}">{{ session.size }} bytes</span>
+                                <span class="ml-2" data-filesize="{{ session.size }}">{{ session.size }} {{ t('bytes') }}</span>
                             </div>
                             <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                 <i class="bi bi-clock w-5"></i>
@@ -98,7 +98,7 @@
                             <a href="/conversation/{{ project_name | urlencode }}/{{ session.id | urlencode }}?view={{ current_view or 'qwen' }}"
                                class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors group-hover:bg-primary-700">
                                 <i class="bi bi-eye mr-2"></i>
-                                View
+                                {{ t('view') }}
                             </a>
                         </div>
                     </div>
@@ -134,7 +134,7 @@
                                         </div>
                                         <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                             <i class="bi bi-chat-dots mr-1"></i>
-                                            {{ session.message_count }} messages
+                                            {{ session.message_count }} {{ t('messages') }}
                                         </div>
                                     </div>
                                     <div class="text-sm text-gray-500 dark:text-gray-500" data-timestamp="{{ session.modified }}">
@@ -149,7 +149,7 @@
                 {% if sessions|length > 10 %}
                     <div class="mt-6 text-center">
                         <p class="text-sm text-gray-500 dark:text-gray-500">
-                            Showing 10 most recent sessions of <span class="font-semibold">{{ sessions|length }}</span> total
+                            {{ t('showing') }} 10 {{ t('recent_sessions') }} {{ t('of') }} <span class="font-semibold">{{ sessions|length }}</span> {{ t('total') }}
                         </p>
                     </div>
                 {% endif %}
@@ -165,14 +165,14 @@
                         <i class="bi bi-chat-x text-6xl text-gray-400 dark:text-gray-600"></i>
                     </div>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">No Sessions Found</h3>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ t('no_sessions_found') }}</h3>
                 <p class="text-gray-600 dark:text-gray-400">
-                    This project doesn't have any conversation sessions yet.
+                    {{ t('no_sessions_in_project') }}
                 </p>
                 <a href="/sessions?view={{ current_view or 'qwen' }}"
                    class="inline-flex items-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors mt-4">
                     <i class="bi bi-arrow-left mr-2"></i>
-                    Back to Projects
+                    {{ t('back_to_projects') }}
                 </a>
             </div>
         </div>

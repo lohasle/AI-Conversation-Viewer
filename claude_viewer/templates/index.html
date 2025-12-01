@@ -8,11 +8,11 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
             <i class="bi bi-clock-history mr-3"></i>
-            Recent Sessions
+            {{ t('recent_sessions') }}
         </h1>
         <div class="text-sm text-gray-600 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 px-4 py-2 rounded-lg">
             <i class="bi bi-folder mr-1"></i>
-            {{ projects|length }} project{{ 's' if projects|length != 1 else '' }} found
+            {{ projects|length }} {{ t('projects_found') }}
         </div>
     </div>
 
@@ -27,17 +27,17 @@
                         <input type="text"
                                name="q"
                                class="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                               placeholder="Search in all conversation content...">
+                               placeholder="{{ t('search_placeholder') }}">
                     </div>
                     <button type="submit"
                             class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors flex items-center">
                         <i class="bi bi-search mr-2"></i>
-                        Search
+                        {{ t('search_button') }}
                     </button>
                 </div>
                 <p class="text-sm text-gray-600 dark:text-gray-400">
                     <i class="bi bi-info-circle mr-1"></i>
-                    Search across all sessions in all {{ current_view or 'qwen' }} projects
+                    {{ t('search_across') }} {{ current_view or 'qwen' }} {{ t('projects') }}
                 </p>
             </form>
         </div>
@@ -47,7 +47,7 @@
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Projects</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">{{ t('total_projects') }}</p>
                         <p class="text-3xl font-bold text-primary-600 dark:text-primary-400">{{ projects|length }}</p>
                     </div>
                     <div class="bg-primary-100 dark:bg-primary-900 p-3 rounded-lg">
@@ -59,7 +59,7 @@
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Total Sessions</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">{{ t('total_sessions') }}</p>
                         <p class="text-3xl font-bold text-green-600 dark:text-green-400">{{ projects|sum(attribute='session_count') }}</p>
                     </div>
                     <div class="bg-green-100 dark:bg-green-900 p-3 rounded-lg">
@@ -71,7 +71,7 @@
             <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">Avg per Project</p>
+                        <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">{{ t('avg_per_project') }}</p>
                         <p class="text-3xl font-bold text-amber-600 dark:text-amber-400">
                             {{ (projects|sum(attribute='session_count') / projects|length)|round(1) if projects|length > 0 else 0 }}
                         </p>
@@ -87,16 +87,16 @@
                     <div>
                         <p class="text-sm text-gray-600 dark:text-gray-400 mb-1">
                             {% if current_view == 'claude' %}
-                                Claude
+                                {{ t('claude') }}
                             {% elif current_view == 'cursor' %}
-                                Cursor
+                                {{ t('cursor') if t('cursor') else 'Cursor' }}
                             {% elif current_view == 'trae' %}
-                                Trae
+                                {{ t('trae') if t('trae') else 'Trae' }}
                             {% elif current_view == 'kiro' %}
-                                Kiro
+                                {{ t('kiro') if t('kiro') else 'Kiro' }}
                             {% else %}
-                                Qwen
-                            {% endif %} View
+                                {{ t('qwen') }}
+                            {% endif %} {{ t('view') }}
                         </p>
                         <p class="text-3xl font-bold
                             {% if current_view == 'claude' %}
@@ -106,7 +106,7 @@
                             {% else %}
                                 text-qwen-600 dark:text-qwen-500
                             {% endif %}">
-                            Active
+                            {{ t('active') }}
                         </p>
                     </div>
                     <div class="
@@ -170,7 +170,7 @@
                                             </span>
                                             <span class="flex items-center">
                                                 <i class="bi bi-chat-dots mr-1"></i>
-                                                {{ project.session_count }} session{{ 's' if project.session_count != 1 else '' }}
+                                                {{ project.session_count }} {{ t('sessions') }}
                                             </span>
                                         </div>
                                     </div>
@@ -184,7 +184,7 @@
                                     </div>
                                     <a href="/project/{{ project.name | urlencode }}?view={{ current_view or 'qwen' }}"
                                        class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors group-hover:bg-primary-700">
-                                        View
+                                        {{ t('view') }}
                                         <i class="bi bi-arrow-right ml-2"></i>
                                     </a>
                                 </div>
@@ -203,9 +203,9 @@
                         <i class="bi bi-clock-history text-6xl text-gray-400 dark:text-gray-600"></i>
                     </div>
                 </div>
-                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">No Sessions Found</h3>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white">{{ t('no_sessions_found') }}</h3>
                 <p class="text-gray-600 dark:text-gray-400">
-                    Make sure {{ current_view or 'Qwen' }} has been used and projects exist in:
+                    {{ t('no_sessions_desc') }} {{ current_view or 'Qwen' }} {{ t('has_been_used') }}
                 </p>
                 <div class="bg-gray-100 dark:bg-gray-900 rounded-lg p-4 font-mono text-sm text-gray-700 dark:text-gray-300">
                     {% if current_view == 'claude' %}
@@ -223,7 +223,7 @@
                 <a href="/health"
                    class="inline-flex items-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors mt-4">
                     <i class="bi bi-heart-pulse mr-2"></i>
-                    Check System Status
+                    {{ t('check_system_status') }}
                 </a>
             </div>
         </div>
