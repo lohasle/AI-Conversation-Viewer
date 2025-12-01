@@ -216,9 +216,15 @@ TRANSLATIONS = {
         'saving': 'Saving',
         'annotation_saved_successfully': 'Annotation saved successfully',
         'failed_to_save_annotation': 'Failed to save annotation',
+        'failed_load_favorites': 'Failed to load favorites',
+        'error_in_show_edit_modal': 'Error in showEditModal',
         'favorite': 'favorite',
         'search_in_titles_annotations': 'Search in title and annotations...',
-
+        'preview': 'Preview',
+        'failed_load_recent_sessions': 'Failed to load recent sessions',
+        'failed_load_statistics': 'Failed to load statistics',
+        'failed_perform_search': 'Failed to perform search',
+        
         # Language names
         'language_english': 'English',
         'language_chinese': '中文',
@@ -427,6 +433,9 @@ TRANSLATIONS = {
         'add_notes_comments': '添加您的笔记、想法或评论...',
         'tag_management_soon': '标签管理即将推出...',
         'add_to_favorites_button': '添加到收藏',
+        'failed_load_tags': '无法加载标签',
+        'failed_load_favorites': '无法加载收藏',
+        'error_in_show_edit_modal': 'showEditModal 中出现错误',
         'statistics': '统计',
         'annotations': '注释',
         'and': '和',
@@ -437,7 +446,11 @@ TRANSLATIONS = {
         'failed_to_save_annotation': '保存注释失败',
         'favorite': '收藏',
         'search_in_titles_annotations': '在标题和注释中搜索...',
-
+        'preview': '预览',
+        'failed_load_recent_sessions': '无法加载最近会话',
+        'failed_load_statistics': '无法加载统计信息',
+        'failed_perform_search': '搜索执行失败',
+        
         # 语言名称
         'language_english': 'English',
         'language_chinese': '中文',

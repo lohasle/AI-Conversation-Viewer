@@ -101,15 +101,20 @@ const TRANSLATIONS = {
     recent_sessions: '{{ t('recent_sessions') }}',
     statistics: '{{ t('statistics') }}',
     search_results: '{{ t('search_results') }}',
-    failed_load_recent_sessions: 'Failed to load recent sessions',
-    failed_load_statistics: 'Failed to load statistics',
-    failed_perform_search: 'Failed to perform search',
+    failed_load_recent_sessions: '{{ t('failed_load_recent_sessions') }}',
+    failed_load_statistics: '{{ t('failed_load_statistics') }}',
+    failed_perform_search: '{{ t('failed_perform_search') }}',
     showing: '{{ t('showing') }}',
     of: '{{ t('of') }}',
     total_sessions: '{{ t('total_sessions') }}',
     matches: '{{ t('matches') }}',
     messages: '{{ t('messages') }}',
-    no_sessions_found: '{{ t('no_sessions_found') }}'
+    no_sessions_found: '{{ t('no_sessions_found') }}',
+    no_conversations_found: '{{ t('no_conversations_found') }}',
+    not_available: '{{ t('not_available') }}',
+    preview: '{{ t('preview') }}',
+    view_session: '{{ t('view_session') }}',
+    projects: '{{ t('projects') }}',
 };
 
 // IDE configuration
@@ -176,11 +181,11 @@ async function loadStatistics() {
         statsHTML += `
             <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg shadow-sm p-6 text-white">
                 <div class="flex items-center justify-between mb-2">
-                    <div class="text-sm font-medium opacity-90">Total Sessions</div>
+                    <div class="text-sm font-medium opacity-90">{{ t('total_sessions') }}</div>
                     <i class="bi bi-chat-dots text-2xl opacity-75"></i>
                 </div>
                 <div class="text-3xl font-bold">${data.total_sessions}</div>
-                <div class="text-xs opacity-75 mt-1">${data.total_projects} projects</div>
+                <div class="text-xs opacity-75 mt-1">${data.total_projects} {{ t('projects') }}</div>
             </div>
         `;
 
@@ -204,7 +209,7 @@ async function loadStatistics() {
                     ${available && stat.session_count > 0 ? `
                         <a href="/sessions?view=${ide}"
                            class="mt-3 inline-flex items-center text-xs ${config.textColor} ${config.darkTextColor} hover:underline">
-                            ${TRANSLATIONS.view_sessions}
+                            {{ t('view_sessions') }}
                             <i class="bi bi-arrow-right ml-1"></i>
                         </a>
                     ` : ''}
@@ -446,12 +451,12 @@ document.getElementById('global-search-form').addEventListener('submit', async f
                         <a href="/conversation/${encodeURIComponent(result.project_name)}/${encodeURIComponent(result.session_id)}?view=${result.view}&search=${encodeURIComponent(query)}"
                            class="flex-shrink-0 inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
                             <i class="bi bi-eye mr-2"></i>
-                            View
+                            ${TRANSLATIONS.view_session}
                         </a>
                     </div>
                     ${result.first_messages && result.first_messages.length > 0 ? `
                         <div class="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
-                            <div class="text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Preview:</div>
+                            <div class="text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">{{ t('preview') }}:</div>
                             ${result.first_messages.slice(0, 2).map(msg => `
                                 <div class="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded p-3">
                                     <div class="font-medium text-xs text-gray-500 dark:text-gray-500 mb-1">

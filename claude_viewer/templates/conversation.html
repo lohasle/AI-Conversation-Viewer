@@ -50,7 +50,7 @@
                 data-view="{{ current_view or 'qwen' }}"
                 data-project="{{ project_name }}"
                 data-session="{{ session_id }}"
-                title="Favorite this session">
+                title="{{ t('favorite_session_tooltip') }}">
             <i class="bi bi-star text-2xl"></i>
         </button>
     </div>
@@ -214,7 +214,7 @@
                                         data-session="{{ session_id }}"
                                         data-line="{{ message.line_number }}"
                                         data-content="{{ message.content[:200] }}"
-                                        title="Add to favorites">
+                                        title="{{ t('add_to_favorites_tooltip') }}">
                                     <i class="bi bi-star text-lg"></i>
                                 </button>
                             </div>

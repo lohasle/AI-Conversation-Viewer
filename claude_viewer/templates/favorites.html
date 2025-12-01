@@ -240,6 +240,16 @@
 
 {% block extra_scripts %}
 <script>
+// Translations for JavaScript
+const FAVORITES_TRANSLATIONS = {
+    failed_load_statistics: '{{ t('failed_load_statistics') }}',
+    failed_load_tags: '{{ t('failed_load_tags') }}',
+    failed_load_favorites: '{{ t('failed_load_favorites') }}',
+    failed_remove_favorites: '{{ t('failed_remove_favorites') }}',
+    failed_save_annotation: '{{ t('failed_to_save_annotation') }}',
+    error_in_show_edit_modal: '{{ t('error_in_show_edit_modal') }}'
+};
+
 class FavoritesManager {
     constructor() {
         this.currentFilters = {
@@ -319,7 +329,7 @@ class FavoritesManager {
                 document.getElementById('stat-messages').textContent = stats.by_type?.message || 0;
             }
         } catch (error) {
-            console.error('Failed to load statistics:', error);
+            console.error(FAVORITES_TRANSLATIONS.failed_load_statistics, error);
         }
     }
 
@@ -333,7 +343,7 @@ class FavoritesManager {
                 }
             }
         } catch (error) {
-            console.error('Failed to load tags:', error);
+            console.error(FAVORITES_TRANSLATIONS.failed_load_tags, error);
         }
     }
 
@@ -407,7 +417,7 @@ class FavoritesManager {
                 }
             }
         } catch (error) {
-            console.error('Failed to load favorites:', error);
+            console.error(FAVORITES_TRANSLATIONS.failed_load_favorites, error);
             loadingState.classList.add('hidden');
             emptyState.classList.remove('hidden');
         }
@@ -462,17 +472,17 @@ class FavoritesManager {
                         <div class="flex items-center space-x-1">
                             <a href="/conversation/${encodeURIComponent(fav.project_name)}/${encodeURIComponent(fav.session_id)}?view=${fav.view}${fav.message_line ? '&highlight=' + fav.message_line : ''}"
                                class="p-2 rounded-lg text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
-                               title="View Conversation">
+                               title="{{ t('view_conversation') }}">
                                 <i class="bi bi-box-arrow-up-right"></i>
                             </a>
                             <button class="edit-favorite p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
                                     data-id="${fav.id}"
-                                    title="Edit annotation">
+                                    title="{{ t('edit_annotation') }}">
                                 <i class="bi bi-pencil"></i>
                             </button>
                             <button class="remove-favorite p-2 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                     data-id="${fav.id}"
-                                    title="Remove from favorites">
+                                    title="{{ t('remove_from_favorites') }}">
                                 <i class="bi bi-trash"></i>
                             </button>
                         </div>
@@ -610,7 +620,7 @@ class FavoritesManager {
             }, 100);
 
         } catch (error) {
-            console.error('Error in showEditModal:', error);
+            console.error(FAVORITES_TRANSLATIONS.error_in_show_edit_modal, error);
         }
     }
 
@@ -654,7 +664,7 @@ class FavoritesManager {
                 window.claudeViewer.showNotification('{{ t("failed_to_save_annotation") }}: ' + (error.detail || 'Unknown error'), 'error');
             }
         } catch (error) {
-            console.error('Failed to save annotation:', error);
+            console.error(FAVORITES_TRANSLATIONS.failed_save_annotation, error);
             window.claudeViewer.showNotification('{{ t("failed_to_save_annotation") }}', 'error');
         } finally {
             // Restore button state

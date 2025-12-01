@@ -9,7 +9,7 @@
             <a href="/"
                class="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition">
                 <i class="bi bi-house mr-1"></i>
-                Dashboard
+                {{ t('dashboard') }}
             </a>
         </li>
         <li class="text-gray-400 dark:text-gray-600">
@@ -19,7 +19,7 @@
             <a href="/sessions?view={{ current_view or 'qwen' }}"
                class="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition">
                 <i class="bi bi-folder2-open mr-1"></i>
-                Projects
+                {{ t('projects') }}
             </a>
         </li>
         <li class="text-gray-400 dark:text-gray-600">
@@ -268,14 +268,14 @@
             if (response.ok) {
                 const data = await response.json();
                 markAsFavorited(btn, data.favorite_id);
-                window.claudeViewer.showNotification('Session added to favorites', 'success');
+                window.claudeViewer.showNotification(PROJECT_VIEW_TRANSLATIONS.session_added_favorites, 'success');
                 window.claudeViewer.updateFavoritesCount();
             } else {
-                window.claudeViewer.showNotification('Failed to add session to favorites', 'error');
+                window.claudeViewer.showNotification(PROJECT_VIEW_TRANSLATIONS.failed_add_favorites, 'error');
             }
         } catch (error) {
             console.error('Failed to add session favorite:', error);
-            window.claudeViewer.showNotification('Failed to add session to favorites', 'error');
+            window.claudeViewer.showNotification(PROJECT_VIEW_TRANSLATIONS.failed_add_favorites, 'error');
         }
     }
 
@@ -287,14 +287,14 @@
 
             if (response.ok) {
                 markAsNotFavorited(btn);
-                window.claudeViewer.showNotification('Session removed from favorites', 'success');
+                window.claudeViewer.showNotification(PROJECT_VIEW_TRANSLATIONS.session_removed_favorites, 'success');
                 window.claudeViewer.updateFavoritesCount();
             } else {
-                window.claudeViewer.showNotification('Failed to remove favorite', 'error');
+                window.claudeViewer.showNotification(PROJECT_VIEW_TRANSLATIONS.failed_remove_favorites, 'error');
             }
         } catch (error) {
             console.error('Failed to remove favorite:', error);
-            window.claudeViewer.showNotification('Failed to remove favorite', 'error');
+            window.claudeViewer.showNotification(PROJECT_VIEW_TRANSLATIONS.failed_remove_favorites, 'error');
         }
     }
 
@@ -306,7 +306,7 @@
         const icon = btn.querySelector('i');
         icon.classList.remove('bi-star');
         icon.classList.add('bi-star-fill');
-        btn.title = 'Remove from favorites';
+        btn.title = '{{ t('remove_from_favorites_tooltip') }}';
     }
 
     function markAsNotFavorited(btn) {
@@ -317,7 +317,15 @@
         const icon = btn.querySelector('i');
         icon.classList.remove('bi-star-fill');
         icon.classList.add('bi-star');
-        btn.title = 'Favorite this session';
+        btn.title = '{{ t('favorite_session_tooltip') }}';
     }
+
+    // Translations for JS
+    const PROJECT_VIEW_TRANSLATIONS = {
+        session_added_favorites: '{{ t("session_added_favorites") }}',
+        failed_add_favorites: '{{ t("failed_add_favorites") }}',
+        session_removed_favorites: '{{ t("session_removed_favorites") }}',
+        failed_remove_favorites: '{{ t("failed_remove_favorites") }}'
+    };
 </script>
 {% endblock %}
