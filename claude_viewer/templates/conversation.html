@@ -34,6 +34,27 @@
 
 {% block content %}
 <div class="space-y-6">
+    <!-- Session Header with Favorite Button -->
+    <div class="flex items-center justify-between bg-gradient-to-r from-primary-50 to-transparent dark:from-gray-800 dark:to-transparent border-l-4 border-primary-500 px-6 py-4 rounded-lg">
+        <div>
+            <h1 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center">
+                <i class="bi bi-chat-dots-fill text-primary-600 dark:text-primary-400 mr-3"></i>
+                Session: {{ session_id[:12] }}...
+            </h1>
+            <p class="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                {{ display_name }}
+            </p>
+        </div>
+        <button id="session-favorite-toggle"
+                class="p-3 rounded-lg text-gray-400 hover:text-amber-500 dark:text-gray-500 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all duration-200"
+                data-view="{{ current_view or 'qwen' }}"
+                data-project="{{ project_name }}"
+                data-session="{{ session_id }}"
+                title="Favorite this session">
+            <i class="bi bi-star text-2xl"></i>
+        </button>
+    </div>
+
     <!-- Search and Filters -->
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
         <form id="search-form" method="get" class="space-y-4">
@@ -127,7 +148,7 @@
     {% if conversation.messages %}
         <div class="space-y-4">
             {% for message in conversation.messages %}
-                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
+                <div id="message-{{ loop.index }}" class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden hover:shadow-md transition-shadow">
                     <!-- Message Header -->
                     <div class="px-6 py-3 border-b border-gray-200 dark:border-gray-700
                         {% if message.role == 'user' or message.display_type == 'User' %}
@@ -176,13 +197,26 @@
                                 {% endif %}
                             </div>
 
-                            <!-- Message Meta -->
-                            <div class="text-xs text-gray-500 dark:text-gray-500">
-                                Line {{ message.line_number }}
-                                {% if message.timestamp %}
-                                    <span class="mx-1">•</span>
-                                    {{ message.timestamp }}
-                                {% endif %}
+                            <!-- Message Meta & Actions -->
+                            <div class="flex items-center space-x-3">
+                                <div class="text-xs text-gray-500 dark:text-gray-500">
+                                    Line {{ message.line_number }}
+                                    {% if message.timestamp %}
+                                        <span class="mx-1">•</span>
+                                        {{ message.timestamp }}
+                                    {% endif %}
+                                </div>
+
+                                <!-- Favorite Button -->
+                                <button class="favorite-toggle p-1.5 rounded-lg text-gray-400 hover:text-amber-500 dark:text-gray-500 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all duration-200"
+                                        data-view="{{ current_view or 'qwen' }}"
+                                        data-project="{{ project_name }}"
+                                        data-session="{{ session_id }}"
+                                        data-line="{{ message.line_number }}"
+                                        data-content="{{ message.content[:200] }}"
+                                        title="Add to favorites">
+                                    <i class="bi bi-star text-lg"></i>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -317,4 +351,64 @@
         </div>
     {% endif %}
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Auto-scroll to first message or highlighted message
+    document.addEventListener('DOMContentLoaded', function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const searchQuery = urlParams.get('search');
+        const highlightLine = urlParams.get('highlight');
+
+        // Highlight specific message if line number provided
+        if (highlightLine) {
+            setTimeout(function() {
+                const targetMessage = document.querySelector(`#message-${highlightLine}`);
+                if (targetMessage) {
+                    targetMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    targetMessage.classList.add('ring-4', 'ring-amber-500', 'ring-offset-4', 'dark:ring-offset-gray-900');
+                    setTimeout(() => targetMessage.classList.remove('ring-4', 'ring-amber-500', 'ring-offset-4', 'dark:ring-offset-gray-900'), 3000);
+                }
+            }, 300);
+        }
+        // Or scroll to first message when coming from search results
+        else if (searchQuery && document.querySelector('#message-1')) {
+            setTimeout(function() {
+                const firstMessage = document.querySelector('#message-1');
+                if (firstMessage) {
+                    // Scroll to the first message with smooth behavior
+                    firstMessage.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+
+                    // Add a temporary highlight effect
+                    firstMessage.classList.add('ring-2', 'ring-primary-500', 'ring-offset-2', 'dark:ring-offset-gray-900');
+
+                    // Remove highlight after 2 seconds
+                    setTimeout(function() {
+                        firstMessage.classList.remove('ring-2', 'ring-primary-500', 'ring-offset-2', 'dark:ring-offset-gray-900');
+                    }, 2000);
+                }
+            }, 300); // Small delay to ensure page is fully rendered
+        }
+    });
+
+    // Clear filters functionality
+    document.querySelectorAll('#clear-filters').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const view = urlParams.get('view') || 'qwen';
+            window.location.href = window.location.pathname + '?view=' + view;
+        });
+    });
+
+    // Auto-submit on filter change
+    document.querySelectorAll('.auto-filter').forEach(function(element) {
+        element.addEventListener('change', function() {
+            document.getElementById('search-form').submit();
+        });
+    });
+</script>
 {% endblock %}

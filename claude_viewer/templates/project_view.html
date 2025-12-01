@@ -6,9 +6,19 @@
 <nav class="mb-6" aria-label="breadcrumb">
     <ol class="flex items-center space-x-2 text-sm">
         <li>
-            <a href="/?view={{ current_view or 'qwen' }}"
+            <a href="/"
                class="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition">
                 <i class="bi bi-house mr-1"></i>
+                Dashboard
+            </a>
+        </li>
+        <li class="text-gray-400 dark:text-gray-600">
+            <i class="bi bi-chevron-right"></i>
+        </li>
+        <li>
+            <a href="/sessions?view={{ current_view or 'qwen' }}"
+               class="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition">
+                <i class="bi bi-folder2-open mr-1"></i>
                 Projects
             </a>
         </li>
@@ -47,12 +57,21 @@
             {% for session in sessions %}
                 <div class="group bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200">
                     <div class="p-6 space-y-4">
-                        <!-- Session ID Header -->
-                        <div class="flex items-center space-x-2">
-                            <i class="bi bi-chat-text text-primary-600 dark:text-primary-400"></i>
-                            <h3 class="font-mono text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                {{ session.id[:8] }}...{{ session.id[-8:] }}
-                            </h3>
+                        <!-- Session Title Header -->
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-2 flex-1 min-w-0">
+                                <i class="bi bi-chat-text text-primary-600 dark:text-primary-400"></i>
+                                <h3 class="text-base font-semibold text-gray-900 dark:text-white truncate" title="{{ session.title }}">
+                                    {{ session.title }}
+                                </h3>
+                            </div>
+                            <button class="session-favorite-btn flex-shrink-0 p-2 rounded-lg text-gray-400 hover:text-amber-500 dark:text-gray-500 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-all duration-200"
+                                    data-view="{{ current_view or 'qwen' }}"
+                                    data-project="{{ project_name }}"
+                                    data-session="{{ session.id }}"
+                                    title="Favorite this session">
+                                <i class="bi bi-star text-lg"></i>
+                            </button>
                         </div>
 
                         <!-- Session Stats -->
@@ -73,10 +92,10 @@
 
                         <!-- Session Footer -->
                         <div class="flex items-center justify-between pt-4 border-t border-gray-200 dark:border-gray-700">
-                            <div class="text-xs text-gray-500 dark:text-gray-500 font-mono truncate max-w-[60%]" title="{{ session.filename }}">
-                                {{ session.filename }}
+                            <div class="text-xs text-gray-500 dark:text-gray-500 font-mono truncate max-w-[60%]" title="{{ session.id }}">
+                                ID: {{ session.id[:12] }}...
                             </div>
-                            <a href="/conversation/{{ project_name }}/{{ session.id }}?view={{ current_view or 'qwen' }}"
+                            <a href="/conversation/{{ project_name | urlencode }}/{{ session.id | urlencode }}?view={{ current_view or 'qwen' }}"
                                class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors group-hover:bg-primary-700">
                                 <i class="bi bi-eye mr-2"></i>
                                 View
@@ -110,8 +129,8 @@
                             <div class="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 hover:border-primary-300 dark:hover:border-primary-700 transition-colors">
                                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                                     <div class="space-y-1">
-                                        <div class="font-mono text-sm font-semibold text-gray-900 dark:text-white">
-                                            Session {{ session.id[:8] }}...
+                                        <div class="text-sm font-semibold text-gray-900 dark:text-white truncate" title="{{ session.title }}">
+                                            {{ session.title }}
                                         </div>
                                         <div class="flex items-center text-sm text-gray-600 dark:text-gray-400">
                                             <i class="bi bi-chat-dots mr-1"></i>
@@ -150,7 +169,7 @@
                 <p class="text-gray-600 dark:text-gray-400">
                     This project doesn't have any conversation sessions yet.
                 </p>
-                <a href="/?view={{ current_view or 'qwen' }}"
+                <a href="/sessions?view={{ current_view or 'qwen' }}"
                    class="inline-flex items-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors mt-4">
                     <i class="bi bi-arrow-left mr-2"></i>
                     Back to Projects
@@ -174,6 +193,131 @@
             const timestamp = el.dataset.timestamp;
             el.textContent = window.formatRelativeTime(timestamp);
         });
+
+        // Setup session favorite buttons
+        setupSessionFavorites();
     });
+
+    function setupSessionFavorites() {
+        const favoriteButtons = document.querySelectorAll('.session-favorite-btn');
+
+        favoriteButtons.forEach(btn => {
+            // Check if this session is already favorited
+            checkSessionFavoriteStatus(btn);
+
+            // Add click event listener
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleSessionFavorite(btn);
+            });
+        });
+    }
+
+    async function checkSessionFavoriteStatus(btn) {
+        const view = btn.dataset.view;
+        const project = btn.dataset.project;
+        const session = btn.dataset.session;
+
+        try {
+            const response = await fetch(`/api/favorites/check/${view}/${project}/${session}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.exists) {
+                    markAsFavorited(btn, data.favorite_id);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to check session favorite status:', error);
+        }
+    }
+
+    async function toggleSessionFavorite(btn) {
+        const isFavorited = btn.classList.contains('favorited');
+
+        if (isFavorited) {
+            const favoriteId = btn.dataset.favoriteId;
+            await removeFavorite(btn, favoriteId);
+        } else {
+            await addSessionFavorite(btn);
+        }
+    }
+
+    async function addSessionFavorite(btn) {
+        const view = btn.dataset.view;
+        const project = btn.dataset.project;
+        const session = btn.dataset.session;
+        const title = `Session: ${session.substring(0, 12)}...`;
+
+        const payload = {
+            type: 'session',
+            view: view,
+            project_name: project,
+            session_id: session,
+            title: title,
+            tags: []
+        };
+
+        try {
+            const response = await fetch('/api/favorites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                markAsFavorited(btn, data.favorite_id);
+                window.claudeViewer.showNotification('Session added to favorites', 'success');
+                window.claudeViewer.updateFavoritesCount();
+            } else {
+                window.claudeViewer.showNotification('Failed to add session to favorites', 'error');
+            }
+        } catch (error) {
+            console.error('Failed to add session favorite:', error);
+            window.claudeViewer.showNotification('Failed to add session to favorites', 'error');
+        }
+    }
+
+    async function removeFavorite(btn, favoriteId) {
+        try {
+            const response = await fetch(`/api/favorites/${favoriteId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                markAsNotFavorited(btn);
+                window.claudeViewer.showNotification('Session removed from favorites', 'success');
+                window.claudeViewer.updateFavoritesCount();
+            } else {
+                window.claudeViewer.showNotification('Failed to remove favorite', 'error');
+            }
+        } catch (error) {
+            console.error('Failed to remove favorite:', error);
+            window.claudeViewer.showNotification('Failed to remove favorite', 'error');
+        }
+    }
+
+    function markAsFavorited(btn, favoriteId) {
+        btn.classList.add('favorited');
+        btn.dataset.favoriteId = favoriteId;
+        btn.classList.remove('text-gray-400', 'dark:text-gray-500');
+        btn.classList.add('text-amber-500', 'dark:text-amber-400');
+        const icon = btn.querySelector('i');
+        icon.classList.remove('bi-star');
+        icon.classList.add('bi-star-fill');
+        btn.title = 'Remove from favorites';
+    }
+
+    function markAsNotFavorited(btn) {
+        btn.classList.remove('favorited');
+        delete btn.dataset.favoriteId;
+        btn.classList.remove('text-amber-500', 'dark:text-amber-400');
+        btn.classList.add('text-gray-400', 'dark:text-gray-500');
+        const icon = btn.querySelector('i');
+        icon.classList.remove('bi-star-fill');
+        icon.classList.add('bi-star');
+        btn.title = 'Favorite this session';
+    }
 </script>
 {% endblock %}

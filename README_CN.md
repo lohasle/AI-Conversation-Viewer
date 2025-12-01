@@ -2,21 +2,67 @@
 
 一个美观、统一的 Web 界面，用于浏览和搜索多个平台的 AI 对话历史记录。
 
-![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)
+![Version](https://img.shields.io/badge/version-1.1.4-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-green.svg)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
 
 ## ✨ 核心特性
 
-- 🤖 **多平台支持** - 支持 Claude Code 和通义千问对话历史
-- 🔍 **强大搜索** - 全文搜索所有对话，关键词高亮显示
-- 📂 **智能组织** - 按项目浏览对话，包含会话元数据和统计信息
-- 💻 **语法高亮** - 精美的代码块展示，支持语言检测和一键复制
-- 🎨 **现代界面** - 简洁响应式界面，支持深色/浅色主题
-- 🌍 **国际化** - 多语言支持（中文/英文）
-- ⚡ **高性能** - 大量对话历史的高效分页加载
-- 🔧 **工具可视化** - 清晰展示工具使用和输出结果
-- 📊 **交互式差异查看器** - 并排对比查看代码变更
+- 🤖 **多 IDE 来源** — 支持 Claude、通义千问，并提供 Cursor/Trae/Kiro 视图切换
+- 🔎 **全局与会话搜索** — 跨所有 IDE 或在单个会话中搜索，关键词高亮显示
+- 📁 **项目与会话浏览** — 按日期分组，展示活动时间线与丰富元数据
+- 💻 **Markdown + 代码高亮** — Pygments 渲染代码块与内联代码，阅读体验佳
+- 🧩 **工具调用可视化** — 结构化的工具名称、参数与输出结果清晰呈现
+- 🧾 **编辑操作 Diff** — 对 Edit 工具结果生成统一 Diff，标注新增/删除行
+- 🎛️ **筛选与分页** — 支持按角色（用户/助手/摘要）、每页数量筛选与大线程分页
+- 🎨 **现代体验** — 深浅主题切换、响应式布局、代码块一键复制
+- 🌍 **国际化** — 内置中英文切换，界面文案一致
+- 📈 **仪表盘与统计** — 全局统计卡片与最近会话列表，快速导航
+
+### 功能详解
+
+- 多 IDE 支持
+  - 顶部导航一键切换 `Claude`/`Qwen`/`Cursor`/`Trae`/`Kiro`
+  - 自动探测默认数据路径；可通过环境变量覆盖：
+    - `CLAUDE_PROJECTS_PATH`、`QWEN_PROJECTS_PATH`、`CURSOR_WORKSPACE_STORAGE_PATH`、`TRAE_WORKSPACE_STORAGE_PATH`、`KIRO_WORKSPACE_STORAGE_PATH`
+
+- 项目与会话浏览
+  - 项目展示会话数量、修改时间与基于工作区元数据的友好名称
+  - 会话卡片显示消息数、文件大小、修改时间与自动提取的标题；支持最近活动时间线
+
+- 对话详情视图
+  - Markdown 渲染与代码高亮（支持围栏代码与内联代码）
+  - 会话内搜索与关键词高亮；按 `user`/`assistant`/`summary` 角色筛选
+  - 对长列表进行分页；超长工具输出智能截断以保证性能与可读性
+  - 工具调用以人性化格式展示参数与结果
+  - Edit 工具的结果内嵌统一 Diff（行号、增删标记等）
+
+- 全局仪表盘与搜索
+  - 跨所有 IDE 的全局搜索，带结果预览与快速跳转
+  - 每个 IDE 的统计卡（项目/会话计数与可用性），并展示最近会话
+
+- 国际化与主题
+  - 通过 Cookie 切换语言；英文/中文界面文案完整覆盖
+  - 主题切换深/浅色并持久化；移动端友好
+
+- 健康检查与诊断
+  - `/health` 接口提供各 IDE 存储路径与项目/会话统计，便于部署与排障
+
+### 收藏与注释
+
+- 支持收藏会话与单条消息，并持久化保存
+  - 在会话页顶部或消息行右侧点击星标可添加到收藏
+  - 通过顶部导航进入“收藏”页面进行浏览、筛选、编辑与移除
+- 存储
+  - 使用 SQLite 持久化，位置为 `~/.aicode-viewer/favorites.db`
+  - 支持标签、注释文本与内容预览
+- 筛选与统计
+  - 可按 `type`（会话/消息）、IDE `view`、`tag`、文本 `search` 进行筛选
+  - 收藏统计展示：按类型和 IDE 的数量，以及热门标签
+
+实现位置参考
+- 收藏数据库：`claude_viewer/db/favorites_db.py`
+- 收藏页面与星标按钮：`claude_viewer/templates/favorites.html`、`claude_viewer/templates/conversation.html`
 
 ## 🚀 快速开始
 
@@ -99,18 +145,55 @@ pip install -e .
 aicode-viewer
 ```
 
+#### 热更新运行
+
+```bash
+uvicorn claude_viewer.main:app --reload --host 127.0.0.1 --port 6300
+```
+
+#### 配置数据路径
+
+- `CLAUDE_PROJECTS_PATH` — Claude 项目目录
+- `QWEN_PROJECTS_PATH` — 通义千问本地数据目录
+- `CURSOR_WORKSPACE_STORAGE_PATH` — Cursor 工作区存储
+- `TRAE_WORKSPACE_STORAGE_PATH` — Trae 工作区存储
+- `KIRO_WORKSPACE_STORAGE_PATH` — Kiro 工作区存储
+
+示例：
+
+```bash
+export CLAUDE_PROJECTS_PATH=~/.claude/projects
+export QWEN_PROJECTS_PATH=~/.qwen/tmp
+aicode-viewer --port 6300
+```
+
+#### 无需安装直接运行
+
+```bash
+python -m uvicorn claude_viewer.main:app --reload
+```
+
 ### 项目结构
 
 ```
 claude-code-viewer/
-├── claude_viewer/          # 主包
-│   ├── cli.py             # 命令行接口
-│   ├── main.py            # FastAPI 应用
-│   ├── i18n.py            # 国际化支持
-│   └── utils/             # 工具类（JSONL 解析器）
-├── static/                # CSS、JavaScript
-├── templates/             # HTML 模板
-└── setup.py              # 包配置
+├── claude_viewer/                  # Python 包
+│   ├── main.py                     # FastAPI 应用
+│   ├── cli.py                      # 命令行入口
+│   ├── i18n.py                     # 界面文案与国际化
+│   ├── db/                         # 收藏 SQLite（增删改查、标签、统计）
+│   ├── utils/                      # 解析与工具（Claude/Qwen 等）
+│   ├── templates/                  # Jinja2 模板（仪表盘、项目、会话、收藏）
+│   └── static/                     # 前端资源（CSS/JS）
+├── img/                            # README 截图资源
+├── pyproject.toml                  # 打包元数据（推荐）
+├── setup.py                        # 兼容的打包元数据
+├── MANIFEST.in                     # 资源打包配置
+├── LICENSE                         # Apache 2.0 许可证
+├── README.md / README_CN.md        # 文档（英文/中文）
+├── QWEN.md                         # 通义千问相关说明
+├── build_and_upload.sh             # 发布辅助脚本
+└── .github/workflows/ci.yml        # CI 流水线
 ```
 
 ## 🤝 贡献指南
@@ -134,8 +217,11 @@ pip install -e ".[dev]"
 ## 🤖 支持的 AI 平台
 
 目前支持：
-- **Claude Code** - Anthropic 官方 Claude CLI 工具
-- **Qwen（通义千问）** - 阿里云 AI 助手
+- **Claude Code** — Anthropic 官方 Claude CLI 工具
+- **Qwen（通义千问）** — 阿里云 AI 助手
+- **Cursor** — AI 编码 IDE 工作区会话
+- **Trae** — AI 编码 IDE 工作区会话
+- **Kiro** — AI 编码 IDE 工作区会话
 
 更多平台即将推出！
 
@@ -177,12 +263,14 @@ Apache 2.0 License - 详见 [LICENSE](LICENSE) 文件。
 
 ## 🗺️ 开发路线图
 
-- [ ] 支持更多 AI 平台（Cursor、Gemini 等）
+- [ ] 支持更多 AI 平台（Gemini 等）
 - [ ] 导出对话到多种格式（PDF、Markdown、HTML）
 - [ ] 高级过滤和标签系统
 - [ ] 对话分析和统计
 - [ ] 实时对话监控
-- [ ] 程序化访问 API
+- [ ] 支持在 Web 端继续对话和提问
+- [ ] UI 美化，采用 IM 风格消息界面
+ 
 
 ---
 

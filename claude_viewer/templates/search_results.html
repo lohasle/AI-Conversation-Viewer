@@ -6,9 +6,19 @@
 <nav class="mb-6" aria-label="breadcrumb">
     <ol class="flex items-center space-x-2 text-sm">
         <li>
-            <a href="/?view={{ current_view or 'qwen' }}"
+            <a href="/"
                class="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition">
                 <i class="bi bi-house mr-1"></i>
+                Dashboard
+            </a>
+        </li>
+        <li class="text-gray-400 dark:text-gray-600">
+            <i class="bi bi-chevron-right"></i>
+        </li>
+        <li>
+            <a href="/sessions?view={{ current_view or 'qwen' }}"
+               class="flex items-center text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 transition">
+                <i class="bi bi-folder2-open mr-1"></i>
                 Projects
             </a>
         </li>
@@ -153,15 +163,15 @@
                     Try a different search term or check your spelling.
                 </p>
                 <div class="flex flex-col sm:flex-row gap-3 justify-center mt-6">
-                    <a href="/?view={{ current_view or 'qwen' }}"
+                    <a href="/sessions?view={{ current_view or 'qwen' }}"
                        class="inline-flex items-center px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors">
-                        <i class="bi bi-house mr-2"></i>
+                        <i class="bi bi-folder2-open mr-2"></i>
                         Back to Projects
                     </a>
-                    <a href="/search?view={{ current_view or 'qwen' }}"
+                    <a href="/"
                        class="inline-flex items-center px-6 py-3 bg-gray-500 hover:bg-gray-600 text-white font-medium rounded-lg transition-colors">
-                        <i class="bi bi-search mr-2"></i>
-                        New Search
+                        <i class="bi bi-speedometer2 mr-2"></i>
+                        Dashboard
                     </a>
                 </div>
             </div>

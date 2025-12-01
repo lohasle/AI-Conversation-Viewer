@@ -68,3 +68,5 @@ test_data/
 
 # PyPI credentials
 .pypirc
+.trae/
+.claude/

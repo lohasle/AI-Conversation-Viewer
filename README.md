@@ -2,21 +2,67 @@
 
 A beautiful, unified web interface for browsing and searching your AI conversation history across multiple platforms.
 
-![Version](https://img.shields.io/badge/version-1.1.3-blue.svg)
+![Version](https://img.shields.io/badge/version-1.1.4-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-green.svg)
 ![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
 
 ## ✨ Features
 
-- 🤖 **Multi-Platform Support** - Works with Claude Code and Qwen (通义千问) conversation histories
-- 🔍 **Powerful Search** - Full-text search across all conversations with keyword highlighting
-- 📂 **Smart Organization** - Browse conversations by project with session metadata and statistics
-- 💻 **Syntax Highlighting** - Beautiful code blocks with language detection and copy buttons
-- 🎨 **Modern UI** - Clean, responsive interface with dark/light theme support
-- 🌍 **Internationalization** - Multi-language support (English/Chinese)
-- ⚡ **Fast Performance** - Efficient pagination for large conversation histories
-- 🔧 **Tool Visualization** - Clear display of tool usage and outputs
-- 📊 **Interactive Diff Viewer** - View code changes with side-by-side diff comparison
+- 🤖 **Multi-IDE Sources** — Claude, Qwen, and Cursor/Trae/Kiro views with quick switcher
+- 🔎 **Global & Scoped Search** — Search across all IDEs or within a session, with term highlighting
+- 📁 **Project & Session Browsing** — Grouped by date with activity timeline and rich metadata
+- 💻 **Markdown + Code Highlight** — Pygments-driven fenced code rendering and inline code styling
+- 🧩 **Tool Use Visualization** — Structured tool calls rendered with readable params and outputs
+- 🧾 **Diff Viewer for Edits** — Inline unified diff for Edit tool results with added/removed lines
+- 🎛️ **Filters & Pagination** — Filter by role (User/Assistant/Summary), page size, and paginate large threads
+- 🎨 **Modern UX** — Dark/light theme toggle, responsive layout, copy buttons on code blocks
+- 🌍 **Internationalization** — Language switcher (English/中文) with consistent UI labels
+- 📈 **Dashboard & Stats** — Global statistics cards and recent sessions across all sources
+
+### Feature Details
+
+- Multi-IDE support
+  - Toggle views for `Claude`/`Qwen`/`Cursor`/`Trae`/`Kiro` directly from the header
+  - Default data paths are auto-detected; override via environment variables:
+    - `CLAUDE_PROJECTS_PATH`, `QWEN_PROJECTS_PATH`, `CURSOR_WORKSPACE_STORAGE_PATH`, `TRAE_WORKSPACE_STORAGE_PATH`, `KIRO_WORKSPACE_STORAGE_PATH`
+
+- Project and session browsing
+  - Projects listed with session counts, modified time, and display names derived from workspace metadata
+  - Sessions show message count, size, modified time, and extracted title; timeline view for recent activity
+
+- Conversation viewer
+  - Markdown rendering with syntax highlighting for fenced blocks and inline code
+  - Search within a conversation with keyword highlighting; filter by `user`/`assistant`/`summary`
+  - Large results are paginated with quick controls; long tool outputs are safely truncated when needed
+  - Tool calls are rendered in human-friendly format, including parameters and results
+  - Edit tool results include an inline unified diff with line numbers and add/remove markers
+
+- Global dashboard and search
+  - Global search across all IDEs with previews and quick navigation to sessions
+  - Statistics cards per IDE: project/session counts and availability, plus recent sessions listing
+
+- Internationalization and theming
+  - Language toggle via cookie; fully localized UI labels in English/Chinese
+  - Theme toggle with persisted dark/light mode; mobile-responsive layout
+
+- Health and diagnostics
+  - `/health` endpoint surfaces counts and paths for each IDE store to aid setup and troubleshooting
+
+### Favorites & Annotations
+
+- Save sessions and individual messages to a persistent favorites store
+  - Click the star button on a session header or per-message row to add to favorites
+  - Open the Favorites page from the header to browse, filter, edit, and remove
+- Storage
+  - Persisted in SQLite at `~/.aicode-viewer/favorites.db`
+  - Includes tags, annotation text, and lightweight content preview
+- Filters and stats
+  - Filter favorites by `type` (session/message), IDE `view`, `tag`, and text `search`
+  - Favorites statistics: totals by type and IDE, plus top tags
+
+Implementation references
+- Favorites DB: `claude_viewer/db/favorites_db.py`
+- Favorites UI: `claude_viewer/templates/favorites.html`, conversation star buttons in `claude_viewer/templates/conversation.html`
 
 ## 🚀 Quick Start
 
@@ -99,17 +145,55 @@ pip install -e .
 aicode-viewer
 ```
 
+#### Run with reload
+
+```bash
+uvicorn claude_viewer.main:app --reload --host 127.0.0.1 --port 6300
+```
+
+#### Configure data paths
+
+- `CLAUDE_PROJECTS_PATH` — Claude project directory
+- `QWEN_PROJECTS_PATH` — Qwen storage directory
+- `CURSOR_WORKSPACE_STORAGE_PATH` — Cursor workspace storage
+- `TRAE_WORKSPACE_STORAGE_PATH` — Trae workspace storage
+- `KIRO_WORKSPACE_STORAGE_PATH` — Kiro workspace storage
+
+Example:
+
+```bash
+export CLAUDE_PROJECTS_PATH=~/.claude/projects
+export QWEN_PROJECTS_PATH=~/.qwen/tmp
+aicode-viewer --port 6300
+```
+
+#### Develop without install
+
+```bash
+python -m uvicorn claude_viewer.main:app --reload
+```
+
 ### Project Structure
 
 ```
 claude-code-viewer/
-├── claude_viewer/          # Main package
-│   ├── cli.py             # Command line interface  
-│   ├── main.py            # FastAPI application
-│   └── utils/             # Utilities (JSONL parser)
-├── static/                # CSS, JavaScript
-├── templates/             # HTML templates
-└── setup.py              # Package configuration
+├── claude_viewer/                 # Python package
+│   ├── main.py                    # FastAPI application
+│   ├── cli.py                     # Command line interface
+│   ├── i18n.py                    # UI translations
+│   ├── db/                        # Favorites SQLite (CRUD, tags, stats)
+│   ├── utils/                     # Parsers and helpers (Claude/Qwen/etc.)
+│   ├── templates/                 # Jinja2 templates (dashboard, project, conversation, favorites)
+│   └── static/                    # Frontend assets (CSS/JS)
+├── img/                           # Screenshots used in README
+├── pyproject.toml                 # Packaging metadata (preferred)
+├── setup.py                       # Legacy packaging metadata
+├── MANIFEST.in                    # Package data inclusion rules
+├── LICENSE                        # Apache 2.0 license
+├── README.md / README_CN.md       # Documentation (English/Chinese)
+├── QWEN.md                        # Qwen-specific notes
+├── build_and_upload.sh            # Publishing helper script
+└── .github/workflows/ci.yml       # CI pipeline
 ```
 
 ## 🤝 Contributing
@@ -133,8 +217,11 @@ pip install -e ".[dev]"
 ## 🤖 Supported AI Platforms
 
 Currently supports:
-- **Claude Code** - Anthropic's official CLI for Claude
-- **Qwen (通义千问)** - Alibaba Cloud's AI assistant
+- **Claude Code** — Anthropic's official CLI for Claude
+- **Qwen (通义千问)** — Alibaba Cloud's AI assistant
+- **Cursor** — AI coding IDE workspace sessions
+- **Trae** — AI coding IDE workspace sessions
+- **Kiro** — AI coding IDE workspace sessions
 
 More platforms coming soon!
 
@@ -176,12 +263,14 @@ Apache 2.0 License - see [LICENSE](LICENSE) file for details.
 
 ## 🗺️ Roadmap
 
-- [ ] Support for more AI platforms (Cursor, Gemini, etc.)
+- [ ] Support for more AI platforms (Gemini, etc.)
 - [ ] Export conversations to various formats (PDF, Markdown, HTML)
 - [ ] Advanced filtering and tagging system
 - [ ] Conversation analytics and statistics
 - [ ] Real-time conversation monitoring
-- [ ] API for programmatic access
+- [ ] Continue conversations directly via Web interface
+- [ ] UI overhaul with IM-style messaging interface
+ 
 
 ---
 

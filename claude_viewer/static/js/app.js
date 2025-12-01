@@ -2,6 +2,7 @@
 
 class ClaudeViewer {
     constructor() {
+        this.pendingFavorite = null; // Store pending favorite data for modal
         this.init();
     }
 
@@ -9,6 +10,8 @@ class ClaudeViewer {
         this.setupEventListeners();
         this.setupCodeCopyButtons();
         this.setupSearch();
+        this.setupFavorites();
+        this.setupAddFavoriteModal();
     }
 
     setupEventListeners() {
@@ -70,6 +73,226 @@ class ClaudeViewer {
                 }, 500);
             });
         }
+    }
+
+    setupFavorites() {
+        // Load favorites count badge
+        this.updateFavoritesCount();
+
+        // Setup session favorite button
+        const sessionBtn = document.getElementById('session-favorite-toggle');
+        if (sessionBtn) {
+            this.checkSessionFavoriteStatus(sessionBtn);
+            sessionBtn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.toggleSessionFavorite(sessionBtn);
+            });
+        }
+
+        // Setup message favorite toggle buttons
+        const favoriteButtons = document.querySelectorAll('.favorite-toggle');
+        favoriteButtons.forEach(btn => {
+            // Check if this message is already favorited
+            this.checkFavoriteStatus(btn);
+
+            // Add click event listener
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                this.toggleFavorite(btn);
+            });
+        });
+    }
+
+    async updateFavoritesCount() {
+        try {
+            const response = await fetch('/api/favorites/statistics');
+            if (response.ok) {
+                const stats = await response.json();
+                const badge = document.getElementById('favorites-count-badge');
+                if (badge && stats.total > 0) {
+                    badge.textContent = stats.total;
+                    badge.classList.remove('hidden');
+                }
+            }
+        } catch (error) {
+            console.error('Failed to load favorites count:', error);
+        }
+    }
+
+    async checkFavoriteStatus(btn) {
+        const view = btn.dataset.view;
+        const project = btn.dataset.project;
+        const session = btn.dataset.session;
+        const line = btn.dataset.line;
+
+        try {
+            const response = await fetch(`/api/favorites/check/${view}/${project}/${session}?message_line=${line}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.exists) {
+                    this.markAsFavorited(btn, data.favorite_id);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to check favorite status:', error);
+        }
+    }
+
+    async toggleFavorite(btn) {
+        const isFavorited = btn.classList.contains('favorited');
+
+        if (isFavorited) {
+            // Remove favorite
+            const favoriteId = btn.dataset.favoriteId;
+            await this.removeFavorite(btn, favoriteId);
+        } else {
+            // Add favorite
+            await this.addFavorite(btn);
+        }
+    }
+
+    async addFavorite(btn) {
+        const view = btn.dataset.view;
+        const project = btn.dataset.project;
+        const session = btn.dataset.session;
+        const line = btn.dataset.line;
+        const content = btn.dataset.content;
+
+        // Generate default title from content
+        const defaultTitle = content.substring(0, 50) + (content.length > 50 ? '...' : '');
+
+        // Prepare payload
+        const payload = {
+            type: 'message',
+            view: view,
+            project_name: project,
+            session_id: session,
+            content_preview: content,
+            message_line: parseInt(line),
+            message_content: content,
+            tags: []
+        };
+
+        // Show modal for user to add title and annotation
+        this.showAddFavoriteModal({
+            button: btn,
+            defaultTitle: defaultTitle,
+            previewTitle: defaultTitle,
+            previewMeta: `Message • ${view} • ${project} • Line ${line}`,
+            payload: payload
+        });
+    }
+
+    async removeFavorite(btn, favoriteId) {
+        try {
+            const response = await fetch(`/api/favorites/${favoriteId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                this.markAsNotFavorited(btn);
+                this.showNotification('Removed from favorites', 'success');
+                this.updateFavoritesCount();
+            } else {
+                this.showNotification('Failed to remove favorite', 'error');
+            }
+        } catch (error) {
+            console.error('Failed to remove favorite:', error);
+            this.showNotification('Failed to remove favorite', 'error');
+        }
+    }
+
+    markAsFavorited(btn, favoriteId) {
+        btn.classList.add('favorited');
+        btn.dataset.favoriteId = favoriteId;
+        btn.classList.remove('text-gray-400', 'dark:text-gray-500');
+        btn.classList.add('text-amber-500', 'dark:text-amber-400');
+        const icon = btn.querySelector('i');
+        icon.classList.remove('bi-star');
+        icon.classList.add('bi-star-fill');
+        btn.title = 'Remove from favorites';
+    }
+
+    markAsNotFavorited(btn) {
+        btn.classList.remove('favorited');
+        delete btn.dataset.favoriteId;
+        btn.classList.remove('text-amber-500', 'dark:text-amber-400');
+        btn.classList.add('text-gray-400', 'dark:text-gray-500');
+        const icon = btn.querySelector('i');
+        icon.classList.remove('bi-star-fill');
+        icon.classList.add('bi-star');
+        btn.title = 'Add to favorites';
+    }
+
+    async checkSessionFavoriteStatus(btn) {
+        const view = btn.dataset.view;
+        const project = btn.dataset.project;
+        const session = btn.dataset.session;
+
+        try {
+            const response = await fetch(`/api/favorites/check/${view}/${project}/${session}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.exists) {
+                    this.markAsFavorited(btn, data.favorite_id);
+                }
+            }
+        } catch (error) {
+            console.error('Failed to check session favorite status:', error);
+        }
+    }
+
+    async toggleSessionFavorite(btn) {
+        const isFavorited = btn.classList.contains('favorited');
+
+        if (isFavorited) {
+            const favoriteId = btn.dataset.favoriteId;
+            await this.removeFavorite(btn, favoriteId);
+        } else {
+            const view = btn.dataset.view;
+            const project = btn.dataset.project;
+            const session = btn.dataset.session;
+            const defaultTitle = `Session: ${session.substring(0, 12)}...`;
+
+            const payload = {
+                type: 'session',
+                view: view,
+                project_name: project,
+                session_id: session,
+                tags: []
+            };
+
+            // Show modal for user to add title and annotation
+            this.showAddFavoriteModal({
+                button: btn,
+                defaultTitle: defaultTitle,
+                previewTitle: defaultTitle,
+                previewMeta: `Session • ${view} • ${project}`,
+                payload: payload
+            });
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `fixed top-4 right-4 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 transform translate-x-0 ${
+            type === 'success' ? 'bg-green-500 text-white' :
+            type === 'error' ? 'bg-red-500 text-white' :
+            'bg-blue-500 text-white'
+        }`;
+        notification.textContent = message;
+
+        document.body.appendChild(notification);
+
+        // Auto-remove after 3 seconds
+        setTimeout(() => {
+            notification.style.transform = 'translateX(400px)';
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                document.body.removeChild(notification);
+            }, 300);
+        }, 3000);
     }
 
     toggleTheme() {
@@ -237,6 +460,125 @@ class ClaudeViewer {
         url.searchParams.set('page', pageNumber);
         window.location.href = url.toString();
     }
+
+    // Setup add favorite modal event listeners
+    setupAddFavoriteModal() {
+        const modal = document.getElementById('add-favorite-modal');
+        if (!modal) return;
+
+        // Close button
+        document.getElementById('close-add-favorite-modal')?.addEventListener('click', () => {
+            this.closeAddFavoriteModal();
+        });
+
+        // Cancel button
+        document.getElementById('cancel-add-favorite')?.addEventListener('click', () => {
+            this.closeAddFavoriteModal();
+        });
+
+        // Save button
+        document.getElementById('save-add-favorite')?.addEventListener('click', () => {
+            this.saveFavoriteFromModal();
+        });
+
+        // Click outside modal to close
+        modal.addEventListener('click', (e) => {
+            if (e.target.id === 'add-favorite-modal') {
+                this.closeAddFavoriteModal();
+            }
+        });
+
+        // ESC key to close
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                this.closeAddFavoriteModal();
+            }
+        });
+    }
+
+    // Show add favorite modal
+    showAddFavoriteModal(favoriteData) {
+        this.pendingFavorite = favoriteData;
+
+        // Set preview info
+        document.getElementById('favorite-preview-title').textContent = favoriteData.previewTitle;
+        document.getElementById('favorite-preview-meta').textContent = favoriteData.previewMeta;
+
+        // Set default title
+        document.getElementById('favorite-title-input').value = favoriteData.defaultTitle || '';
+
+        // Clear annotation
+        document.getElementById('favorite-annotation-input').value = '';
+
+        // Show modal
+        document.getElementById('add-favorite-modal').classList.remove('hidden');
+
+        // Focus on annotation
+        setTimeout(() => {
+            document.getElementById('favorite-annotation-input').focus();
+        }, 100);
+    }
+
+    // Close add favorite modal
+    closeAddFavoriteModal() {
+        document.getElementById('add-favorite-modal').classList.add('hidden');
+        this.pendingFavorite = null;
+        document.getElementById('favorite-title-input').value = '';
+        document.getElementById('favorite-annotation-input').value = '';
+    }
+
+    // Save favorite from modal
+    async saveFavoriteFromModal() {
+        if (!this.pendingFavorite) return;
+
+        const customTitle = document.getElementById('favorite-title-input').value.trim();
+        const annotation = document.getElementById('favorite-annotation-input').value.trim();
+
+        // Use custom title if provided, otherwise use default
+        const title = customTitle || this.pendingFavorite.defaultTitle;
+
+        const payload = {
+            ...this.pendingFavorite.payload,
+            title: title,
+            annotation: annotation || null
+        };
+
+        const saveBtn = document.getElementById('save-add-favorite');
+        const originalText = saveBtn.innerHTML;
+
+        try {
+            saveBtn.disabled = true;
+            saveBtn.innerHTML = '<i class="bi bi-hourglass-split mr-2 animate-spin"></i>Saving...';
+
+            const response = await fetch('/api/favorites', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+
+                // Mark button as favorited if provided
+                if (this.pendingFavorite.button) {
+                    this.markAsFavorited(this.pendingFavorite.button, data.favorite_id);
+                }
+
+                this.showNotification('Added to favorites', 'success');
+                this.updateFavoritesCount();
+                this.closeAddFavoriteModal();
+            } else {
+                const error = await response.json();
+                this.showNotification('Failed to add favorite: ' + (error.detail || 'Unknown error'), 'error');
+            }
+        } catch (error) {
+            console.error('Failed to add favorite:', error);
+            this.showNotification('Failed to add favorite', 'error');
+        } finally {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = originalText;
+        }
+    }
 }
 
 // Initialize theme before DOM loads to prevent flash
@@ -268,8 +610,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Hide loader when page is fully loaded
+    // Hide loader when page is fully loaded or restored
     window.addEventListener('load', hidePageLoader);
+    window.addEventListener('pageshow', hidePageLoader);
+    window.addEventListener('popstate', hidePageLoader);
 });
 
 // Page loader functions

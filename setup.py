@@ -14,7 +14,7 @@ def read_readme():
 
 setup(
     name="ai-coder-viewer",
-    version="1.1.3",
+    version="1.1.4",
     description="Beautiful web viewer for AI conversation history (Claude, Qwen, and more)",
     long_description=read_readme(),
     long_description_content_type="text/markdown",

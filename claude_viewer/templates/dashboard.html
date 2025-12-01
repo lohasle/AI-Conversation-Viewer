@@ -1,0 +1,473 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - AI Conversation Viewer{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-4xl font-bold text-gray-900 dark:text-white flex items-center">
+                <i class="bi bi-speedometer2 mr-3 text-primary-600 dark:text-primary-400"></i>
+                Dashboard
+            </h1>
+            <p class="mt-2 text-gray-600 dark:text-gray-400">
+                Overview of all your AI conversation sessions across different IDEs
+            </p>
+        </div>
+    </div>
+
+    <!-- Global Search -->
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+            <i class="bi bi-search mr-2 text-primary-600 dark:text-primary-400"></i>
+            Global Search
+        </h2>
+        <form id="global-search-form" class="space-y-3">
+            <div class="flex gap-2">
+                <div class="relative flex-1">
+                    <i class="bi bi-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    <input type="text"
+                           id="search-input"
+                           name="q"
+                           class="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
+                           placeholder="Search across all IDEs (Claude, Qwen, Cursor, Trae, Kiro)...">
+                </div>
+                <button type="submit"
+                        class="px-6 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors flex items-center">
+                    <i class="bi bi-search mr-2"></i>
+                    Search
+                </button>
+            </div>
+            <p class="text-sm text-gray-600 dark:text-gray-400">
+                <i class="bi bi-info-circle mr-1"></i>
+                Search across all sessions in all IDEs simultaneously
+            </p>
+        </form>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+            <i class="bi bi-bar-chart mr-2 text-primary-600 dark:text-primary-400"></i>
+            Statistics
+        </h2>
+        <div id="stats-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+            <!-- Loading state -->
+            <div class="col-span-full flex items-center justify-center py-8">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                <span class="ml-3 text-gray-600 dark:text-gray-400">Loading statistics...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Sessions -->
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+            <i class="bi bi-clock-history mr-2 text-primary-600 dark:text-primary-400"></i>
+            Recent Sessions
+        </h2>
+        <div id="recent-sessions-container">
+            <!-- Loading state -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 flex items-center justify-center py-12">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+                <span class="ml-3 text-gray-600 dark:text-gray-400">Loading recent sessions...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Results (hidden by default) -->
+    <div id="search-results-container" class="hidden">
+        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-4 flex items-center">
+            <i class="bi bi-search mr-2 text-primary-600 dark:text-primary-400"></i>
+            Search Results
+            <span id="search-results-count" class="ml-3 text-sm font-normal text-gray-600 dark:text-gray-400"></span>
+        </h2>
+        <div id="search-results" class="space-y-4">
+            <!-- Search results will be inserted here -->
+        </div>
+    </div>
+</div>
+
+<script>
+// IDE configuration
+const IDE_CONFIG = {
+    claude: {
+        name: 'Claude',
+        icon: 'bi-robot',
+        color: 'bg-orange-500',
+        textColor: 'text-orange-600',
+        bgColor: 'bg-orange-100',
+        darkBgColor: 'dark:bg-orange-900',
+        darkTextColor: 'dark:text-orange-400'
+    },
+    qwen: {
+        name: 'Qwen',
+        icon: 'bi-moon-stars',
+        color: 'bg-purple-500',
+        textColor: 'text-purple-600',
+        bgColor: 'bg-purple-100',
+        darkBgColor: 'dark:bg-purple-900',
+        darkTextColor: 'dark:text-purple-400'
+    },
+    cursor: {
+        name: 'Cursor',
+        icon: 'bi-cursor',
+        color: 'bg-blue-500',
+        textColor: 'text-blue-600',
+        bgColor: 'bg-blue-100',
+        darkBgColor: 'dark:bg-blue-900',
+        darkTextColor: 'dark:text-blue-400'
+    },
+    trae: {
+        name: 'Trae',
+        icon: 'bi-terminal',
+        color: 'bg-green-500',
+        textColor: 'text-green-600',
+        bgColor: 'bg-green-100',
+        darkBgColor: 'dark:bg-green-900',
+        darkTextColor: 'dark:text-green-400'
+    },
+    kiro: {
+        name: 'Kiro',
+        icon: 'bi-hdd-network',
+        color: 'bg-indigo-500',
+        textColor: 'text-indigo-600',
+        bgColor: 'bg-indigo-100',
+        darkBgColor: 'dark:bg-indigo-900',
+        darkTextColor: 'dark:text-indigo-400'
+    }
+};
+
+// Load statistics
+async function loadStatistics() {
+    try {
+        const response = await fetch('/api/statistics');
+        const data = await response.json();
+
+        const statsContainer = document.getElementById('stats-container');
+
+        // Create stats cards
+        let statsHTML = '';
+
+        // Total card
+        statsHTML += `
+            <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg shadow-sm p-6 text-white">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="text-sm font-medium opacity-90">Total Sessions</div>
+                    <i class="bi bi-chat-dots text-2xl opacity-75"></i>
+                </div>
+                <div class="text-3xl font-bold">${data.total_sessions}</div>
+                <div class="text-xs opacity-75 mt-1">${data.total_projects} projects</div>
+            </div>
+        `;
+
+        // Individual IDE cards
+        for (const [ide, config] of Object.entries(IDE_CONFIG)) {
+            const stat = data.stats[ide];
+            const available = stat && stat.available;
+
+            statsHTML += `
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 ${available ? 'hover:shadow-md' : 'opacity-60'} transition-all">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="text-sm font-medium text-gray-600 dark:text-gray-400">${config.name}</div>
+                        <i class="bi ${config.icon} text-2xl ${config.textColor} ${config.darkTextColor}"></i>
+                    </div>
+                    <div class="text-3xl font-bold ${config.textColor} ${config.darkTextColor}">
+                        ${available ? stat.session_count : '0'}
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        ${available ? stat.project_count + ' projects' : 'Not available'}
+                    </div>
+                    ${available && stat.session_count > 0 ? `
+                        <a href="/sessions?view=${ide}"
+                           class="mt-3 inline-flex items-center text-xs ${config.textColor} ${config.darkTextColor} hover:underline">
+                            View sessions
+                            <i class="bi bi-arrow-right ml-1"></i>
+                        </a>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        statsContainer.innerHTML = statsHTML;
+    } catch (error) {
+        console.error('Error loading statistics:', error);
+        document.getElementById('stats-container').innerHTML = `
+            <div class="col-span-full text-center py-8 text-red-600 dark:text-red-400">
+                <i class="bi bi-exclamation-triangle text-2xl"></i>
+                <p class="mt-2">Failed to load statistics</p>
+            </div>
+        `;
+    }
+}
+
+// Load recent sessions
+async function loadRecentSessions() {
+    try {
+        const response = await fetch('/api/sessions/recent?limit=10');
+        const data = await response.json();
+
+        const container = document.getElementById('recent-sessions-container');
+
+        if (data.sessions.length === 0) {
+            container.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+                    <div class="flex justify-center mb-4">
+                        <div class="bg-gray-100 dark:bg-gray-900 p-6 rounded-full">
+                            <i class="bi bi-clock-history text-6xl text-gray-400 dark:text-gray-600"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">No Sessions Found</h3>
+                    <p class="text-gray-600 dark:text-gray-400">No conversation sessions found across any IDE</p>
+                </div>
+            `;
+            return;
+        }
+
+        // Group sessions by date
+        const groupedSessions = {};
+        for (const session of data.sessions) {
+            const timestamp = new Date(session.modified);
+            const dateStr = timestamp.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            if (!groupedSessions[dateStr]) {
+                groupedSessions[dateStr] = [];
+            }
+            groupedSessions[dateStr].push(session);
+        }
+
+        let sessionsHTML = '<div class="space-y-6">';
+
+        for (const [date, sessions] of Object.entries(groupedSessions)) {
+            const config = IDE_CONFIG[sessions[0].view];
+
+            sessionsHTML += `
+                <div class="space-y-4">
+                    <!-- Date Header -->
+                    <div class="flex items-center space-x-3">
+                        <i class="bi bi-calendar-event text-xl text-primary-600 dark:text-primary-400"></i>
+                        <h3 class="text-xl font-bold text-gray-900 dark:text-white">${date}</h3>
+                        <div class="flex-1 h-px bg-gradient-to-r from-primary-200 to-transparent dark:from-primary-800"></div>
+                    </div>
+
+                    <!-- Session Cards Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            `;
+
+            for (const session of sessions) {
+                const sessionConfig = IDE_CONFIG[session.view];
+                const timestamp = new Date(session.modified);
+                const timeStr = timestamp.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+                sessionsHTML += `
+                    <div class="relative group bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-primary-300 dark:hover:border-primary-700 transition-all duration-200 overflow-hidden">
+                        <!-- IDE Badge (top-right corner) -->
+                        <div class="absolute top-0 right-0 z-10">
+                            <div class="inline-flex items-center px-3 py-1.5 rounded-bl-lg ${sessionConfig.color} text-white text-xs font-bold shadow-md">
+                                <i class="bi ${sessionConfig.icon} mr-1"></i>
+                                ${sessionConfig.name}
+                            </div>
+                        </div>
+
+                        <div class="p-6 pt-12 space-y-4">
+                            <!-- Session Title -->
+                            <div>
+                                <h4 class="text-base font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2" title="${session.session_title}">
+                                    ${session.session_title}
+                                </h4>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 truncate" title="${session.project_display_name}">
+                                    <i class="bi bi-folder2-open mr-1"></i>
+                                    ${session.project_display_name}
+                                </p>
+                            </div>
+
+                            <!-- Session Stats -->
+                            <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                <span class="flex items-center">
+                                    <i class="bi bi-chat-dots mr-1"></i>
+                                    ${session.message_count}
+                                </span>
+                                <span class="flex items-center">
+                                    <i class="bi bi-clock mr-1"></i>
+                                    ${timeStr}
+                                </span>
+                            </div>
+
+                            <!-- View Button -->
+                            <div class="pt-2">
+                                <a href="/conversation/${encodeURIComponent(session.project_name)}/${encodeURIComponent(session.session_id)}?view=${session.view}"
+                                   class="inline-flex items-center justify-center w-full px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors group-hover:bg-primary-700">
+                                    <i class="bi bi-eye mr-2"></i>
+                                    View Session
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            sessionsHTML += `
+                    </div>
+                </div>
+            `;
+        }
+
+        sessionsHTML += '</div>';
+
+        if (data.total > data.sessions.length) {
+            sessionsHTML += `
+                <div class="mt-6 text-center">
+                    <p class="text-sm text-gray-500 dark:text-gray-500">
+                        Showing ${data.sessions.length} most recent of <span class="font-semibold">${data.total}</span> total sessions
+                    </p>
+                </div>
+            `;
+        }
+
+        container.innerHTML = sessionsHTML;
+    } catch (error) {
+        console.error('Error loading recent sessions:', error);
+        document.getElementById('recent-sessions-container').innerHTML = `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center text-red-600 dark:text-red-400">
+                <i class="bi bi-exclamation-triangle text-2xl"></i>
+                <p class="mt-2">Failed to load recent sessions</p>
+            </div>
+        `;
+    }
+}
+
+// Global search
+document.getElementById('global-search-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const query = document.getElementById('search-input').value.trim();
+    if (!query) return;
+
+    const resultsContainer = document.getElementById('search-results-container');
+    const resultsDiv = document.getElementById('search-results');
+    const resultsCount = document.getElementById('search-results-count');
+
+    // Show loading
+    resultsContainer.classList.remove('hidden');
+    resultsDiv.innerHTML = `
+        <div class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            <span class="ml-3 text-gray-600 dark:text-gray-400">Searching...</span>
+        </div>
+    `;
+
+    try {
+        const response = await fetch(`/api/search/global?q=${encodeURIComponent(query)}&limit=50`);
+        const data = await response.json();
+
+        resultsCount.textContent = `(${data.total} results found)`;
+
+        if (data.results.length === 0) {
+            resultsDiv.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+                    <div class="flex justify-center mb-4">
+                        <div class="bg-gray-100 dark:bg-gray-900 p-6 rounded-full">
+                            <i class="bi bi-search text-6xl text-gray-400 dark:text-gray-600"></i>
+                        </div>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2">No Results Found</h3>
+                    <p class="text-gray-600 dark:text-gray-400">No matches found for "${query}" across any IDE</p>
+                </div>
+            `;
+
+            // Auto-scroll to search results even when no results found
+            setTimeout(function() {
+                resultsContainer.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start'
+                });
+            }, 100);
+            return;
+        }
+
+        let resultsHTML = '';
+
+        for (const result of data.results) {
+            const config = IDE_CONFIG[result.view];
+            const relativeTime = window.formatRelativeTime ? window.formatRelativeTime(result.modified) : result.modified;
+
+            resultsHTML += `
+                <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-all">
+                    <div class="flex items-start justify-between gap-4 mb-4">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2 mb-2">
+                                <span class="inline-flex items-center px-2 py-1 rounded text-xs font-medium ${config.bgColor} ${config.darkBgColor} ${config.textColor} ${config.darkTextColor}">
+                                    <i class="bi ${config.icon} mr-1"></i>
+                                    ${config.name}
+                                </span>
+                                <span class="text-sm text-gray-600 dark:text-gray-400">${result.project_display_name}</span>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                                ${result.session_title}
+                            </h3>
+                            <div class="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                <span class="flex items-center">
+                                    <i class="bi bi-check-circle mr-1 text-green-600 dark:text-green-400"></i>
+                                    ${result.matching_count} matches
+                                </span>
+                                <span class="flex items-center">
+                                    <i class="bi bi-chat-dots mr-1"></i>
+                                    ${result.message_count} messages
+                                </span>
+                                <span class="flex items-center">
+                                    <i class="bi bi-clock mr-1"></i>
+                                    ${relativeTime}
+                                </span>
+                            </div>
+                        </div>
+                        <a href="/conversation/${encodeURIComponent(result.project_name)}/${encodeURIComponent(result.session_id)}?view=${result.view}&search=${encodeURIComponent(query)}"
+                           class="flex-shrink-0 inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors">
+                            <i class="bi bi-eye mr-2"></i>
+                            View
+                        </a>
+                    </div>
+                    ${result.first_messages && result.first_messages.length > 0 ? `
+                        <div class="border-t border-gray-200 dark:border-gray-700 pt-4 space-y-2">
+                            <div class="text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Preview:</div>
+                            ${result.first_messages.slice(0, 2).map(msg => `
+                                <div class="text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-900 rounded p-3">
+                                    <div class="font-medium text-xs text-gray-500 dark:text-gray-500 mb-1">
+                                        ${msg.role || msg.type}
+                                    </div>
+                                    <div class="line-clamp-3">${msg.content.substring(0, 200)}${msg.content.length > 200 ? '...' : ''}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        resultsDiv.innerHTML = resultsHTML;
+
+        // Auto-scroll to search results with smooth animation
+        setTimeout(function() {
+            resultsContainer.scrollIntoView({
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }, 100);
+    } catch (error) {
+        console.error('Error searching:', error);
+        resultsDiv.innerHTML = `
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-8 text-center text-red-600 dark:text-red-400">
+                <i class="bi bi-exclamation-triangle text-2xl"></i>
+                <p class="mt-2">Failed to perform search</p>
+            </div>
+        `;
+    }
+});
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadStatistics();
+    loadRecentSessions();
+});
+</script>
+{% endblock %}

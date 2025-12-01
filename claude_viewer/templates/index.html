@@ -182,7 +182,7 @@
                                         <i class="bi bi-hash mr-1"></i>
                                         {{ project.name[:8] }}...
                                     </div>
-                                    <a href="/project/{{ project.name }}?view={{ current_view or 'qwen' }}"
+                                    <a href="/project/{{ project.name | urlencode }}?view={{ current_view or 'qwen' }}"
                                        class="inline-flex items-center px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-medium rounded-lg transition-colors group-hover:bg-primary-700">
                                         View
                                         <i class="bi bi-arrow-right ml-2"></i>

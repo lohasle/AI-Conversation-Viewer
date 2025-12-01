@@ -70,15 +70,10 @@
                         <i class="bi bi-chat-dots text-2xl"></i>
                         <span class="font-bold text-xl hidden sm:inline">{{ t('app_name') }}</span>
                     </a>
-                    <div class="flex items-center space-x-2">
+                    <div class="flex items-center">
                         <a href="/" class="inline-flex items-center px-4 py-2.5 rounded-lg text-sm font-semibold {% if current_view == 'dashboard' or request.url.path == '/' %}bg-gradient-to-r from-primary-500 to-primary-600 text-white shadow-md shadow-primary-500/30{% else %}text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700{% endif %} transition-all duration-200">
                             <i class="bi bi-speedometer2 text-base mr-2"></i>
                             <span>Dashboard</span>
-                        </a>
-                        <a href="/favorites" class="inline-flex items-center px-4 py-2.5 rounded-lg text-sm font-semibold {% if request.url.path == '/favorites' %}bg-gradient-to-r from-amber-500 to-amber-600 text-white shadow-md shadow-amber-500/30{% else %}text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700{% endif %} transition-all duration-200">
-                            <i class="bi bi-star text-base mr-2"></i>
-                            <span>Favorites</span>
-                            <span id="favorites-count-badge" class="ml-2 px-2 py-0.5 rounded-full text-xs font-bold {% if request.url.path == '/favorites' %}bg-amber-400 text-amber-900{% else %}bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300{% endif %} hidden"></span>
                         </a>
                     </div>
                 </div>
@@ -165,8 +160,8 @@
                             <i class="bi bi-chevron-down ml-1.5 text-xs"></i>
                         </button>
                         <!-- Dropdown -->
-                        <div class="hidden group-hover:block absolute right-0 top-full pt-2 w-36 z-50">
-                            <div class="py-1 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 overflow-hidden">
+                        <div class="hidden group-hover:block absolute right-0 mt-2 w-36 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-gray-200 dark:ring-gray-700 z-50 overflow-hidden">
+                            <div class="py-1">
                                 {% for available_lang in available_languages %}
                                     <a href="/set-language/{{ available_lang }}"
                                        class="block px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gradient-to-r hover:from-primary-50 hover:to-transparent dark:hover:from-primary-900/20 transition-all duration-200 {% if lang == available_lang %}bg-primary-50 dark:bg-primary-900/20 font-semibold border-l-2 border-primary-500{% endif %}">
@@ -192,6 +187,36 @@
             </div>
         </nav>
 
+        <!-- Subtitle Banner -->
+        <div class="bg-gradient-to-r from-primary-50 to-primary-100 dark:from-gray-700 dark:to-gray-600 border-t border-primary-200 dark:border-gray-600">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                <p class="text-sm text-center text-gray-700 dark:text-gray-200">
+                    <i class="bi bi-search mr-1"></i>
+                    {{ t('browse_search') }}
+                    <span class="font-semibold
+                        {% if current_view == 'claude' %}
+                        text-claude-600 dark:text-claude-500
+                        {% elif current_view == 'cursor' %}
+                        text-primary-600 dark:text-primary-400
+                        {% else %}
+                        text-qwen-600 dark:text-qwen-500
+                        {% endif %}">
+                        {% if current_view == 'claude' %}
+                            {{ t('claude') }}
+                        {% elif current_view == 'cursor' %}
+                            {{ t('cursor') if t('cursor') else 'Cursor' }}
+                        {% elif current_view == 'trae' %}
+                            {{ t('trae') if t('trae') else 'Trae' }}
+                        {% elif current_view == 'kiro' %}
+                            {{ t('kiro') if t('kiro') else 'Kiro' }}
+                        {% else %}
+                            {{ t('qwen') }}
+                        {% endif %}
+                    </span>
+                    {{ t('conversation_history') }}
+                </p>
+            </div>
+        </div>
         <!-- Subtitle Banner (hidden on Dashboard) -->
         {% if current_view != 'dashboard' %}
         <div class="bg-gradient-to-r from-primary-50 to-primary-100 dark:from-gray-700 dark:to-gray-600 border-t border-primary-200 dark:border-gray-600">
@@ -231,84 +256,6 @@
         {% block breadcrumb %}{% endblock %}
         {% block content %}{% endblock %}
     </main>
-
-    <!-- Add to Favorites Modal -->
-    <div id="add-favorite-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <!-- Modal Header -->
-            <div class="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-4">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-gray-900 dark:text-white flex items-center">
-                        <i class="bi bi-star-fill text-amber-500 mr-2"></i>
-                        {{ t('add_to_favorites') }}
-                    </h2>
-                    <button id="close-add-favorite-modal" class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                        <i class="bi bi-x-lg text-xl"></i>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Modal Body -->
-            <div class="px-6 py-6">
-                <div class="space-y-4">
-                    <!-- Preview Info -->
-                    <div id="favorite-preview" class="bg-gradient-to-r from-primary-50 to-transparent dark:from-primary-900/20 dark:to-transparent border-l-4 border-primary-500 px-4 py-3 rounded">
-                        <p id="favorite-preview-title" class="font-semibold text-gray-900 dark:text-white"></p>
-                        <p id="favorite-preview-meta" class="text-sm text-gray-600 dark:text-gray-400 mt-1"></p>
-                    </div>
-
-                    <!-- Title Input -->
-                    <div>
-                        <label for="favorite-title-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            <i class="bi bi-pencil mr-1"></i>
-                            {{ t('edit') }} Title (Optional)
-                        </label>
-                        <input type="text"
-                               id="favorite-title-input"
-                               class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition"
-                               placeholder="Auto-generated title will be used if left empty">
-                    </div>
-
-                    <!-- Annotation Input -->
-                    <div>
-                        <label for="favorite-annotation-input" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            <i class="bi bi-chat-left-text mr-1"></i>
-                            {{ t('annotation') }}
-                        </label>
-                        <textarea id="favorite-annotation-input"
-                                  rows="4"
-                                  class="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition resize-none"
-                                  placeholder="Add your notes, thoughts, or comments..."></textarea>
-                    </div>
-
-                    <!-- Tags Section (Future) -->
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            <i class="bi bi-tags mr-1"></i>
-                            {{ t('tags') }}
-                        </label>
-                        <div class="p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700/50">
-                            <span class="text-sm text-gray-500 dark:text-gray-400 italic">Tag management coming soon...</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Modal Footer -->
-            <div class="sticky bottom-0 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 px-6 py-4">
-                <div class="flex items-center justify-end space-x-3">
-                    <button id="cancel-add-favorite" class="px-4 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-600 font-medium transition-colors">
-                        <i class="bi bi-x-circle mr-2"></i>
-                        {{ t('cancel') }}
-                    </button>
-                    <button id="save-add-favorite" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg font-medium transition-colors">
-                        <i class="bi bi-star-fill mr-2"></i>
-                        Add to Favorites
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
 
     <!-- Footer -->
     <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 mt-12">

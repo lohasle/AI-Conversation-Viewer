@@ -2,14 +2,16 @@
 
 import os
 from pathlib import Path
-from fastapi import FastAPI, HTTPException, Query, Request, Response
+from fastapi import FastAPI, HTTPException, Query, Request, Response, Body
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any, Literal
+from datetime import datetime
 from .utils.jsonl_parser import JSONLParser
 from .i18n import get_translation, TRANSLATIONS
+from .db.favorites_db import FavoritesDB
 import markdown
 from pygments import highlight
 from pygments.lexers import get_lexer_by_name, guess_lexer
@@ -42,6 +44,9 @@ app = FastAPI(
 # Setup static files and templates
 app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
 templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
+
+# Initialize favorites database
+favorites_db = FavoritesDB()
 
 # Configuration
 GITHUB_URL = os.environ.get("GITHUB_REPO_URL", "https://github.com/lohasle/AI-Conversation-Viewer")
@@ -147,6 +152,50 @@ class ConversationResponse(BaseModel):
     per_page: int
     total_pages: int
 
+# Favorites models
+class TagModel(BaseModel):
+    id: Optional[int] = None
+    name: str
+    color: Optional[str] = None
+    is_auto: bool = False
+    usage_count: Optional[int] = 0
+
+class CreateFavoriteRequest(BaseModel):
+    type: Literal["session", "message"] = Field(..., description="Favorite type")
+    view: str = Field(..., description="IDE type")
+    project_name: str
+    session_id: str
+    title: str
+    annotation: Optional[str] = None
+    content_preview: Optional[str] = None
+    message_line: Optional[int] = None
+    message_content: Optional[str] = None
+    tags: List[str] = []
+
+class UpdateFavoriteRequest(BaseModel):
+    annotation: Optional[str] = None
+    tags: Optional[List[str]] = None
+
+class FavoriteModel(BaseModel):
+    id: str
+    type: str
+    view: str
+    project_name: str
+    session_id: str
+    message_line: Optional[int] = None
+    message_hash: Optional[str] = None
+    title: str
+    annotation: Optional[str] = None
+    content_preview: Optional[str] = None
+    tags: List[TagModel] = []
+    created_at: str
+    updated_at: str
+
+class FavoritesListResponse(BaseModel):
+    favorites: List[FavoriteModel]
+    total: int
+    statistics: Optional[Dict[str, Any]] = None
+
 # Custom markdown renderer with syntax highlighting
 def render_markdown_with_code(text: str) -> str:
     """Render markdown with syntax highlighting for code blocks"""
@@ -240,8 +289,17 @@ async def set_language(lang: str, request: Request):
     return response
 
 @app.get("/", response_class=HTMLResponse)
-async def root(request: Request, view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
-    """Main page showing projects based on selected view (Qwen or Claude)"""
+async def root(request: Request):
+    """Dashboard homepage with statistics and global search"""
+    context = {
+        "request": request,
+        "current_view": "dashboard"  # Set a special view type for dashboard
+    }
+    return templates.TemplateResponse("dashboard.html", add_template_context(request, context))
+
+@app.get("/sessions", response_class=HTMLResponse)
+async def sessions_view(request: Request, view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
+    """Sessions page showing projects based on selected view"""
     parser = get_parser(view)
     projects = parser.get_projects()
 
@@ -296,6 +354,47 @@ async def project_view(request: Request, project_name: str, view: str = Query("q
     }
 
     return templates.TemplateResponse("project_view.html", add_template_context(request, context))
+
+@app.get("/api/sessions/recent")
+async def get_recent_sessions(limit: int = Query(20, le=100, ge=1)):
+    """Get recent sessions across all IDEs"""
+    all_sessions = []
+
+    for view_name in ["claude", "qwen", "cursor", "trae", "kiro"]:
+        try:
+            parser = get_parser(view_name)
+            projects = parser.get_projects()
+        except Exception:
+            continue
+
+        for project in projects:
+            try:
+                sessions = parser.get_sessions(project["name"])
+            except Exception:
+                continue
+            for session in sessions:
+                try:
+                    all_sessions.append({
+                        "view": view_name,
+                        "project_name": project.get("name"),
+                        "project_display_name": project.get("display_name", project.get("name")),
+                        "session_id": session.get("id"),
+                        "session_title": session.get("title", session.get("id")),
+                        "message_count": session.get("message_count", 0),
+                        "modified": session.get("modified"),
+                        "size": session.get("size", 0)
+                    })
+                except Exception:
+                    continue
+
+    # Filter out sessions without valid modified time and sort by modified time (descending)
+    valid_sessions = [s for s in all_sessions if s.get("modified")]
+    valid_sessions.sort(key=lambda x: x["modified"], reverse=True)
+
+    return {
+        "sessions": valid_sessions[:limit],
+        "total": len(valid_sessions)
+    }
 
 @app.get("/api/sessions/{project_name}", response_model=List[Session])
 async def get_sessions(project_name: str, view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
@@ -424,6 +523,92 @@ async def search_view(request: Request, q: str = Query(..., min_length=1), view:
 
     return templates.TemplateResponse("search_results.html", add_template_context(request, context))
 
+@app.get("/api/statistics")
+async def get_statistics():
+    """Get statistics for all IDE sessions"""
+    stats = {}
+    total_sessions = 0
+
+    for view_name in ["claude", "qwen", "cursor", "trae", "kiro"]:
+        try:
+            parser = get_parser(view_name)
+            projects = parser.get_projects()
+            session_count = sum(p.get("session_count", 0) for p in projects)
+            stats[view_name] = {
+                "project_count": len(projects),
+                "session_count": session_count,
+                "available": True
+            }
+            total_sessions += session_count
+        except Exception as e:
+            stats[view_name] = {
+                "project_count": 0,
+                "session_count": 0,
+                "available": False,
+                "error": str(e)
+            }
+
+    return {
+        "stats": stats,
+        "total_sessions": total_sessions,
+        "total_projects": sum(s["project_count"] for s in stats.values())
+    }
+
+@app.get("/api/search/global")
+async def global_search(q: str = Query(..., min_length=1), limit: int = Query(50, le=200, ge=1)):
+    """Search across all IDEs and sessions"""
+    search_results = []
+
+    for view_name in ["claude", "qwen", "cursor", "trae", "kiro"]:
+        try:
+            parser = get_parser(view_name)
+            projects = parser.get_projects()
+        except Exception:
+            continue
+
+        for project in projects:
+            try:
+                sessions = parser.get_sessions(project.get("name"))
+            except Exception:
+                continue
+
+            for session in sessions:
+                try:
+                    conversation = parser.get_conversation(
+                        project.get("name"), session.get("id"),
+                        page=1, per_page=100,
+                        search=q
+                    )
+                except Exception:
+                    continue
+
+                if conversation.get("messages"):
+                    first_messages = conversation["messages"][:3]
+                    try:
+                        search_results.append({
+                            "view": view_name,
+                            "project_name": project.get("name"),
+                            "project_display_name": project.get("display_name", project.get("name")),
+                            "session_id": session.get("id"),
+                            "session_title": session.get("title", session.get("id")),
+                            "message_count": session.get("message_count", 0),
+                            "matching_count": len(conversation.get("messages", [])),
+                            "first_messages": first_messages,
+                            "modified": session.get("modified")
+                        })
+                    except Exception:
+                        continue
+
+    # Filter out results without valid modified time and sort by modified time (descending)
+    valid_results = [r for r in search_results if r.get("modified")]
+    valid_results.sort(key=lambda x: x["modified"], reverse=True)
+
+    return {
+        "results": valid_results[:limit],
+        "total": len(valid_results),
+        "query": q
+    }
+
 @app.get("/health")
 async def health_check():
     """Health check endpoint"""
@@ -500,3 +685,216 @@ async def health_check():
         "trae_key_samples": trae_key_samples,
         "kiro_key_samples": kiro_key_samples
     }
+
+
+# ==================== Favorites API Routes ====================
+
+@app.post("/api/favorites", response_model=Dict[str, Any])
+async def create_favorite(request: CreateFavoriteRequest):
+    """Create a new favorite"""
+    try:
+        # Generate message hash if message content provided
+        message_hash = None
+        if request.message_content:
+            message_hash = FavoritesDB.generate_message_hash(request.message_content)
+
+        favorite_id = favorites_db.add_favorite(
+            favorite_type=request.type,
+            view=request.view,
+            project_name=request.project_name,
+            session_id=request.session_id,
+            title=request.title,
+            annotation=request.annotation,
+            content_preview=request.content_preview,
+            message_line=request.message_line,
+            message_hash=message_hash,
+            tags=request.tags
+        )
+
+        return {"success": True, "favorite_id": favorite_id}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create favorite: {str(e)}")
+
+
+@app.get("/api/favorites", response_model=FavoritesListResponse)
+async def get_favorites(
+    type: Optional[str] = Query(None, regex="^(session|message)$"),
+    view: Optional[str] = Query(None),
+    project_name: Optional[str] = Query(None),
+    tag: Optional[str] = Query(None),
+    search: Optional[str] = Query(None),
+    limit: int = Query(100, le=1000),
+    offset: int = Query(0, ge=0),
+    include_stats: bool = Query(False)
+):
+    """Get favorites with filters"""
+    try:
+        favorites = favorites_db.get_favorites(
+            favorite_type=type,
+            view=view,
+            project_name=project_name,
+            tag=tag,
+            search=search,
+            limit=limit,
+            offset=offset
+        )
+
+        # Convert to Pydantic models
+        favorite_models = []
+        for fav in favorites:
+            # Convert tags to TagModel
+            tag_models = [TagModel(**t) for t in fav.get('tags', [])]
+
+            favorite_models.append(FavoriteModel(
+                id=fav['id'],
+                type=fav['type'],
+                view=fav['view'],
+                project_name=fav['project_name'],
+                session_id=fav['session_id'],
+                message_line=fav.get('message_line'),
+                message_hash=fav.get('message_hash'),
+                title=fav['title'],
+                annotation=fav.get('annotation'),
+                content_preview=fav.get('content_preview'),
+                tags=tag_models,
+                created_at=fav['created_at'],
+                updated_at=fav['updated_at']
+            ))
+
+        statistics = None
+        if include_stats:
+            statistics = favorites_db.get_statistics()
+
+        return FavoritesListResponse(
+            favorites=favorite_models,
+            total=len(favorite_models),
+            statistics=statistics
+        )
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get favorites: {str(e)}")
+
+
+@app.get("/api/favorites/{favorite_id}", response_model=FavoriteModel)
+async def get_favorite(favorite_id: str):
+    """Get a single favorite by ID"""
+    try:
+        fav = favorites_db.get_favorite_by_id(favorite_id)
+        if not fav:
+            raise HTTPException(status_code=404, detail="Favorite not found")
+
+        tag_models = [TagModel(**t) for t in fav.get('tags', [])]
+
+        return FavoriteModel(
+            id=fav['id'],
+            type=fav['type'],
+            view=fav['view'],
+            project_name=fav['project_name'],
+            session_id=fav['session_id'],
+            message_line=fav.get('message_line'),
+            message_hash=fav.get('message_hash'),
+            title=fav['title'],
+            annotation=fav.get('annotation'),
+            content_preview=fav.get('content_preview'),
+            tags=tag_models,
+            created_at=fav['created_at'],
+            updated_at=fav['updated_at']
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get favorite: {str(e)}")
+
+
+@app.put("/api/favorites/{favorite_id}", response_model=Dict[str, Any])
+async def update_favorite(favorite_id: str, request: UpdateFavoriteRequest):
+    """Update favorite annotation and/or tags"""
+    try:
+        if request.annotation is not None:
+            success = favorites_db.update_annotation(favorite_id, request.annotation)
+            if not success:
+                raise HTTPException(status_code=404, detail="Favorite not found")
+
+        if request.tags is not None:
+            favorites_db.update_favorite_tags(favorite_id, request.tags)
+
+        return {"success": True}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to update favorite: {str(e)}")
+
+
+@app.delete("/api/favorites/{favorite_id}", response_model=Dict[str, Any])
+async def delete_favorite(favorite_id: str):
+    """Delete a favorite"""
+    try:
+        success = favorites_db.remove_favorite(favorite_id)
+        if not success:
+            raise HTTPException(status_code=404, detail="Favorite not found")
+
+        return {"success": True}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete favorite: {str(e)}")
+
+
+@app.get("/api/favorites/check/{view}/{project_name}/{session_id}")
+async def check_favorite_exists(
+    view: str,
+    project_name: str,
+    session_id: str,
+    message_line: Optional[int] = Query(None)
+):
+    """Check if a favorite exists"""
+    try:
+        favorite_id = favorites_db.check_favorite_exists(
+            view=view,
+            project_name=project_name,
+            session_id=session_id,
+            message_line=message_line
+        )
+
+        return {
+            "exists": favorite_id is not None,
+            "favorite_id": favorite_id
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to check favorite: {str(e)}")
+
+
+@app.get("/api/tags", response_model=List[TagModel])
+async def get_all_tags():
+    """Get all tags with usage counts"""
+    try:
+        tags = favorites_db.get_all_tags()
+        return [TagModel(**tag) for tag in tags]
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get tags: {str(e)}")
+
+
+@app.get("/api/favorites/statistics")
+async def get_favorites_statistics():
+    """Get favorites statistics"""
+    try:
+        return favorites_db.get_statistics()
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get statistics: {str(e)}")
+
+
+@app.get("/favorites", response_class=HTMLResponse)
+async def favorites_page(request: Request):
+    """Favorites page"""
+    context = {
+        "request": request,
+        "current_view": "favorites"
+    }
+    return templates.TemplateResponse("favorites.html", add_template_context(request, context))

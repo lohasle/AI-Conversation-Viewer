@@ -95,11 +95,10 @@ Examples:
     
     args = parser.parse_args()
     
-    # Validate projects path
+    # Validate projects path (non-fatal). The app supports multiple views beyond Claude.
     if not validate_projects_path(args.projects_path):
-        sys.exit(1)
-    
-    # Set environment variable for the app to use
+        print("⚠️ Proceeding without valid Claude projects; other views may still work (Cursor/Trae/Kiro/Qwen).")
+    # Set environment variable for the app to use regardless
     os.environ["CLAUDE_PROJECTS_PATH"] = str(Path(args.projects_path).expanduser().resolve())
     
     print(f"⚡ Claude Code Viewer v{__version__}")
