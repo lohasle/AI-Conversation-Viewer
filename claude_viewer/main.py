@@ -13,8 +13,14 @@ from .utils.jsonl_parser import JSONLParser
 from .i18n import get_translation, TRANSLATIONS
 from .db.favorites_db import FavoritesDB
 from .utils.cache import (
-    projects_cache, sessions_cache, conversation_cache, 
-    search_cache, statistics_cache, cached, clear_all_caches, get_cache_stats
+    projects_cache,
+    sessions_cache,
+    conversation_cache,
+    search_cache,
+    statistics_cache,
+    cached,
+    clear_all_caches,
+    get_cache_stats,
 )
 import markdown
 from pygments import highlight
@@ -42,7 +48,7 @@ if not TEMPLATES_DIR.exists():
 app = FastAPI(
     title="Claude Code Conversation Viewer",
     description="View, search and browse Claude Code conversation history",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 # Setup static files and templates
@@ -53,12 +59,16 @@ templates = Jinja2Templates(directory=str(TEMPLATES_DIR))
 favorites_db = FavoritesDB()
 
 # Configuration
-GITHUB_URL = os.environ.get("GITHUB_REPO_URL", "https://github.com/lohasle/AI-Conversation-Viewer")
+GITHUB_URL = os.environ.get(
+    "GITHUB_REPO_URL", "https://github.com/lohasle/AI-Conversation-Viewer"
+)
+
 
 # Helper functions
 def get_language_from_cookie(request: Request) -> str:
     """Get language preference from cookie, default to 'en'."""
     return request.cookies.get("lang", "en")
+
 
 def highlight_search_text(text: str, query: str) -> str:
     """Highlight search query in text."""
@@ -70,22 +80,26 @@ def highlight_search_text(text: str, query: str) -> str:
     query = html.escape(query)
 
     # Create a case-insensitive pattern
-    pattern = re.compile(f'({re.escape(query)})', re.IGNORECASE)
+    pattern = re.compile(f"({re.escape(query)})", re.IGNORECASE)
     # Replace with highlighted version
-    highlighted = pattern.sub(r'<mark class="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">\1</mark>', text)
+    highlighted = pattern.sub(
+        r'<mark class="bg-yellow-200 dark:bg-yellow-800 px-1 rounded">\1</mark>', text
+    )
     return highlighted
+
 
 def add_template_context(request: Request, context: dict) -> dict:
     """Add common context variables to all templates."""
     lang = get_language_from_cookie(request)
 
     # Add translation function
-    context['t'] = lambda key: get_translation(key, lang)
-    context['lang'] = lang
-    context['github_url'] = GITHUB_URL
-    context['available_languages'] = list(TRANSLATIONS.keys())
+    context["t"] = lambda key: get_translation(key, lang)
+    context["lang"] = lang
+    context["github_url"] = GITHUB_URL
+    context["available_languages"] = list(TRANSLATIONS.keys())
 
     return context
+
 
 # Initialize parser with custom path from environment
 def get_parser(parser_type: str = "qwen"):
@@ -105,17 +119,38 @@ def get_parser(parser_type: str = "qwen"):
     elif parser_type == "cursor":
         cursor_path = os.environ.get("CURSOR_WORKSPACE_STORAGE_PATH")
         if not cursor_path:
-            cursor_path = str(Path.home() / "Library" / "Application Support" / "Cursor" / "User" / "workspaceStorage")
+            cursor_path = str(
+                Path.home()
+                / "Library"
+                / "Application Support"
+                / "Cursor"
+                / "User"
+                / "workspaceStorage"
+            )
         return JSONLParser(cursor_path, parser_type="cursor")
     elif parser_type == "trae":
         trae_path = os.environ.get("TRAE_WORKSPACE_STORAGE_PATH")
         if not trae_path:
-            trae_path = str(Path.home() / "Library" / "Application Support" / "Trae" / "User" / "workspaceStorage")
+            trae_path = str(
+                Path.home()
+                / "Library"
+                / "Application Support"
+                / "Trae"
+                / "User"
+                / "workspaceStorage"
+            )
         return JSONLParser(trae_path, parser_type="trae")
     elif parser_type == "kiro":
         kiro_path = os.environ.get("KIRO_WORKSPACE_STORAGE_PATH")
         if not kiro_path:
-            kiro_path = str(Path.home() / "Library" / "Application Support" / "Kiro" / "User" / "workspaceStorage")
+            kiro_path = str(
+                Path.home()
+                / "Library"
+                / "Application Support"
+                / "Kiro"
+                / "User"
+                / "workspaceStorage"
+            )
         return JSONLParser(kiro_path, parser_type="kiro")
     else:
         raise ValueError(f"Unsupported parser type: {parser_type}")
@@ -146,13 +181,14 @@ def get_conversation_cached(
     page: int = 1,
     per_page: int = 50,
     search: Optional[str] = None,
-    message_type: Optional[str] = None
+    message_type: Optional[str] = None,
 ) -> Dict:
     """获取会话内容（带缓存）"""
     parser = get_parser(parser_type)
     return parser.get_conversation(
         project_name, session_id, page, per_page, search, message_type
     )
+
 
 # Pydantic models
 class Project(BaseModel):
@@ -165,6 +201,7 @@ class Project(BaseModel):
     modified_time: Optional[float] = None  # Add modification time
     modified_time_str: Optional[str] = None  # Add formatted modification time
 
+
 class Session(BaseModel):
     id: str
     filename: str
@@ -172,6 +209,7 @@ class Session(BaseModel):
     size: int
     modified: str
     message_count: int
+
 
 class Message(BaseModel):
     line_number: int
@@ -183,12 +221,14 @@ class Message(BaseModel):
     timestamp: Optional[str] = None
     uuid: Optional[str] = None
 
+
 class ConversationResponse(BaseModel):
     messages: List[Dict[str, Any]]
     total: int
     page: int
     per_page: int
     total_pages: int
+
 
 # Favorites models
 class TagModel(BaseModel):
@@ -197,6 +237,7 @@ class TagModel(BaseModel):
     color: Optional[str] = None
     is_auto: bool = False
     usage_count: Optional[int] = 0
+
 
 class CreateFavoriteRequest(BaseModel):
     type: Literal["session", "message"] = Field(..., description="Favorite type")
@@ -210,9 +251,11 @@ class CreateFavoriteRequest(BaseModel):
     message_content: Optional[str] = None
     tags: List[str] = []
 
+
 class UpdateFavoriteRequest(BaseModel):
     annotation: Optional[str] = None
     tags: Optional[List[str]] = None
+
 
 class FavoriteModel(BaseModel):
     id: str
@@ -229,85 +272,89 @@ class FavoriteModel(BaseModel):
     created_at: str
     updated_at: str
 
+
 class FavoritesListResponse(BaseModel):
     favorites: List[FavoriteModel]
     total: int
     statistics: Optional[Dict[str, Any]] = None
 
+
 # Custom markdown renderer with syntax highlighting
 def render_markdown_with_code(text: str) -> str:
     """Render markdown with syntax highlighting for code blocks"""
-    
+
     # Check if content already contains diff HTML - if so, preserve it
     if '<div class="diff-container">' in text:
         # This is diff content that's already HTML - just process markdown around it
         # but preserve the diff HTML blocks
-        
+
         # Split content by diff containers to process markdown around them
         diff_parts = text.split('<div class="diff-container">')
         processed_parts = []
-        
+
         for i, part in enumerate(diff_parts):
             if i == 0:
                 # First part - before any diff, process as markdown
                 processed_parts.append(process_markdown_text(part))
             else:
                 # This part starts with diff content
-                if '</div>' in part:
+                if "</div>" in part:
                     # Find where diff content ends
-                    diff_end = part.rfind('</div>') + 6  # Include the closing tag
+                    diff_end = part.rfind("</div>") + 6  # Include the closing tag
                     diff_html = '<div class="diff-container">' + part[:diff_end]
                     remaining_text = part[diff_end:]
-                    
+
                     processed_parts.append(diff_html)
                     if remaining_text.strip():
                         processed_parts.append(process_markdown_text(remaining_text))
                 else:
                     # Malformed diff HTML, process as regular markdown
-                    processed_parts.append(process_markdown_text('<div class="diff-container">' + part))
-        
-        return ''.join(processed_parts)
+                    processed_parts.append(
+                        process_markdown_text('<div class="diff-container">' + part)
+                    )
+
+        return "".join(processed_parts)
     else:
         # Regular content without diffs
         return process_markdown_text(text)
 
+
 def process_markdown_text(text: str) -> str:
     """Process text as markdown with syntax highlighting"""
-    
+
     # Custom renderer for code blocks
     def highlight_code_block(match):
-        language = match.group(1) or 'text'
+        language = match.group(1) or "text"
         code = match.group(2)
-        
+
         try:
-            if language.lower() in ['text', 'plain', '']:
+            if language.lower() in ["text", "plain", ""]:
                 lexer = guess_lexer(code)
             else:
                 lexer = get_lexer_by_name(language.lower())
-            
+
             formatter = HtmlFormatter(
-                style='github-dark',
-                cssclass='highlight',
-                linenos=False
+                style="github-dark", cssclass="highlight", linenos=False
             )
-            
+
             highlighted = highlight(code, lexer, formatter)
             return f'<div class="code-block">{highlighted}</div>'
-            
+
         except (ClassNotFound, Exception):
             return f'<pre><code class="language-{language}">{code}</code></pre>'
-    
+
     # Process code blocks first
-    code_block_pattern = r'```(\w*)\n(.*?)\n```'
+    code_block_pattern = r"```(\w*)\n(.*?)\n```"
     text = re.sub(code_block_pattern, highlight_code_block, text, flags=re.DOTALL)
-    
+
     # Process inline code
-    text = re.sub(r'`([^`]+)`', r'<code>\1</code>', text)
-    
+    text = re.sub(r"`([^`]+)`", r"<code>\1</code>", text)
+
     # Convert markdown to HTML
-    html = markdown.markdown(text, extensions=['tables', 'fenced_code'])
-    
+    html = markdown.markdown(text, extensions=["tables", "fenced_code"])
+
     return html
+
 
 # Routes
 @app.get("/set-language/{lang}")
@@ -326,31 +373,30 @@ async def set_language(lang: str, request: Request):
 
     return response
 
+
 def get_ide_stats_helper():
     stats = {}
     for view_name in ["claude", "qwen", "cursor", "trae", "kiro"]:
         try:
             parser = get_parser(view_name)
             projects = parser.get_projects()
-            stats[view_name] = {
-                "project_count": len(projects),
-                "available": True
-            }
+            stats[view_name] = {"project_count": len(projects), "available": True}
         except Exception:
-            stats[view_name] = {
-                "project_count": 0,
-                "available": False
-            }
+            stats[view_name] = {"project_count": 0, "available": False}
     return stats
+
 
 @app.get("/", response_class=HTMLResponse)
 async def root(request: Request):
     """Dashboard homepage with statistics and global search"""
     context = {
         "request": request,
-        "current_view": "dashboard"  # Set a special view type for dashboard
+        "current_view": "dashboard",  # Set a special view type for dashboard
     }
-    return templates.TemplateResponse("dashboard.html", add_template_context(request, context))
+    return templates.TemplateResponse(
+        "dashboard.html", add_template_context(request, context)
+    )
+
 
 @app.get("/x-ide", response_class=HTMLResponse)
 async def x_ide_view(
@@ -361,35 +407,37 @@ async def x_ide_view(
     page: Optional[int] = Query(None, ge=1),
     per_page: int = Query(50, le=200, ge=10),
     search: Optional[str] = Query(None),
-    message_type: Optional[str] = Query(None)
+    message_type: Optional[str] = Query(None),
 ):
     """App Shell - Main Entry Point"""
-    
+
     # 1. Get IDE Stats for Column 1（使用缓存）
     ide_stats = get_ide_stats_helper()
-    
+
     # 2. Get Projects for Column 2（使用缓存）
     projects = get_projects_cached(view)
-    
+
     # 3. Get Sessions for Column 3 (if project selected)（使用缓存）
     sessions = []
     if project_name:
-         try:
-             sessions = get_sessions_cached(view, project_name)
-         except:
-             sessions = []
-             
+        try:
+            sessions = get_sessions_cached(view, project_name)
+        except:
+            sessions = []
+
     # 4. Get Conversation for Column 4 (if session selected)（使用缓存）
     conversation = None
     session_summary = None
     session_title = None
-    
+
     if project_name and session_id:
         # Get session title and summary
         parser = get_parser(view)
         session_summary = parser.get_session_summary(project_name, session_id)
-        session_title = next((s['title'] for s in sessions if s['id'] == session_id), session_id)
-        
+        session_title = next(
+            (s["title"] for s in sessions if s["id"] == session_id), session_id
+        )
+
         # Logic to determine page if not provided (Load last page for IM feel)
         target_page = page
         if target_page is None:
@@ -397,31 +445,41 @@ async def x_ide_view(
             # Optimization: fetch page 1 to get total, then fetch last?
             # Or just fetch with a special flag?
             # For now, let's just default to page 1, but the user asked for "scroll to bottom is newest".
-            # Usually paginated APIs return oldest first (page 1). 
+            # Usually paginated APIs return oldest first (page 1).
             # If so, we need the last page.
             # Let's try fetching page 1, check total_pages, then fetch that.
             try:
-                temp_conv = parser.get_conversation(project_name, session_id, page=1, per_page=per_page)
-                if temp_conv.get('total_pages', 1) > 1:
-                    target_page = temp_conv['total_pages']
+                temp_conv = parser.get_conversation(
+                    project_name, session_id, page=1, per_page=per_page
+                )
+                if temp_conv.get("total_pages", 1) > 1:
+                    target_page = temp_conv["total_pages"]
                 else:
                     target_page = 1
             except:
                 target_page = 1
-        
+
         try:
             # 使用缓存获取会话内容
             conversation = get_conversation_cached(
-                view, project_name, session_id, target_page, per_page, search, message_type
+                view,
+                project_name,
+                session_id,
+                target_page,
+                per_page,
+                search,
+                message_type,
             )
-            
+
             # Render markdown
             if conversation and "messages" in conversation:
-                 for message in conversation["messages"]:
+                for message in conversation["messages"]:
                     if message.get("content"):
                         rendered = render_markdown_with_code(message["content"])
                         if search:
-                            message["rendered_content"] = highlight_search_text(rendered, search)
+                            message["rendered_content"] = highlight_search_text(
+                                rendered, search
+                            )
                         else:
                             message["rendered_content"] = rendered
         except Exception:
@@ -439,13 +497,19 @@ async def x_ide_view(
         "session_summary": session_summary,
         "conversation": conversation,
         "search": search,
-        "message_type": message_type
+        "message_type": message_type,
     }
-    
-    return templates.TemplateResponse("app.html", add_template_context(request, context))
+
+    return templates.TemplateResponse(
+        "app.html", add_template_context(request, context)
+    )
+
 
 @app.get("/sessions", response_class=HTMLResponse)
-async def sessions_view(request: Request, view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
+async def sessions_view(
+    request: Request,
+    view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$"),
+):
     """Sessions page showing projects based on selected view"""
     # 使用缓存
     projects = get_projects_cached(view)
@@ -457,7 +521,11 @@ async def sessions_view(request: Request, view: str = Query("qwen", regex="^(qwe
     # Group projects by date for the frontend
     grouped_projects = {}
     for project in projects:
-        date = project["modified_time_str"].split(' ')[0] if 'modified_time_str' in project else 'Unknown Date'
+        date = (
+            project["modified_time_str"].split(" ")[0]
+            if "modified_time_str" in project
+            else "Unknown Date"
+        )
         if date not in grouped_projects:
             grouped_projects[date] = []
         grouped_projects[date].append(project)
@@ -466,13 +534,18 @@ async def sessions_view(request: Request, view: str = Query("qwen", regex="^(qwe
         "request": request,
         "projects": projects,
         "grouped_projects": grouped_projects,
-        "current_view": view
+        "current_view": view,
     }
 
-    return templates.TemplateResponse("index.html", add_template_context(request, context))
+    return templates.TemplateResponse(
+        "index.html", add_template_context(request, context)
+    )
+
 
 @app.get("/api/projects", response_model=List[Project])
-async def get_projects(view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
+async def get_projects(
+    view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")
+):
     """API endpoint to get projects based on selected view (Qwen or Claude)"""
     # 使用缓存
     projects = get_projects_cached(view)
@@ -483,8 +556,13 @@ async def get_projects(view: str = Query("qwen", regex="^(qwen|claude|cursor|tra
 
     return projects
 
+
 @app.get("/project/{project_name}", response_class=HTMLResponse)
-async def project_view(request: Request, project_name: str, view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
+async def project_view(
+    request: Request,
+    project_name: str,
+    view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$"),
+):
     """Project page showing all sessions"""
     parser = get_parser(view)
     sessions = parser.get_sessions(project_name)
@@ -497,10 +575,13 @@ async def project_view(request: Request, project_name: str, view: str = Query("q
         "project_name": project_name,
         "display_name": parser._format_project_name(project_name),
         "sessions": sessions,
-        "current_view": view
+        "current_view": view,
     }
 
-    return templates.TemplateResponse("project_view.html", add_template_context(request, context))
+    return templates.TemplateResponse(
+        "project_view.html", add_template_context(request, context)
+    )
+
 
 @app.get("/api/sessions/recent")
 async def get_recent_sessions(limit: int = Query(20, le=100, ge=1)):
@@ -521,16 +602,20 @@ async def get_recent_sessions(limit: int = Query(20, le=100, ge=1)):
                 continue
             for session in sessions:
                 try:
-                    all_sessions.append({
-                        "view": view_name,
-                        "project_name": project.get("name"),
-                        "project_display_name": project.get("display_name", project.get("name")),
-                        "session_id": session.get("id"),
-                        "session_title": session.get("title", session.get("id")),
-                        "message_count": session.get("message_count", 0),
-                        "modified": session.get("modified"),
-                        "size": session.get("size", 0)
-                    })
+                    all_sessions.append(
+                        {
+                            "view": view_name,
+                            "project_name": project.get("name"),
+                            "project_display_name": project.get(
+                                "display_name", project.get("name")
+                            ),
+                            "session_id": session.get("id"),
+                            "session_title": session.get("title", session.get("id")),
+                            "message_count": session.get("message_count", 0),
+                            "modified": session.get("modified"),
+                            "size": session.get("size", 0),
+                        }
+                    )
                 except Exception:
                     continue
 
@@ -538,13 +623,14 @@ async def get_recent_sessions(limit: int = Query(20, le=100, ge=1)):
     valid_sessions = [s for s in all_sessions if s.get("modified")]
     valid_sessions.sort(key=lambda x: x["modified"], reverse=True)
 
-    return {
-        "sessions": valid_sessions[:limit],
-        "total": len(valid_sessions)
-    }
+    return {"sessions": valid_sessions[:limit], "total": len(valid_sessions)}
+
 
 @app.get("/api/sessions/{project_name}", response_model=List[Session])
-async def get_sessions(project_name: str, view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
+async def get_sessions(
+    project_name: str,
+    view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$"),
+):
     """API endpoint to get sessions for a project based on selected view"""
     # 使用缓存
     sessions = get_sessions_cached(view, project_name)
@@ -553,6 +639,7 @@ async def get_sessions(project_name: str, view: str = Query("qwen", regex="^(qwe
         raise HTTPException(status_code=404, detail="Project not found")
 
     return sessions
+
 
 @app.get("/conversation/{project_name}/{session_id}", response_class=HTMLResponse)
 async def conversation_view(
@@ -563,14 +650,14 @@ async def conversation_view(
     per_page: int = Query(50, le=200, ge=10),
     search: Optional[str] = Query(None),
     message_type: Optional[str] = Query(None),
-    view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")
+    view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$"),
 ):
     """Conversation viewer page"""
     parser = get_parser(view)
     sessions = parser.get_sessions(project_name)
     projects = parser.get_projects()
 
-    if not any(s['id'] == session_id for s in sessions):
+    if not any(s["id"] == session_id for s in sessions):
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     conversation = parser.get_conversation(
@@ -579,9 +666,11 @@ async def conversation_view(
 
     # Get session summary
     session_summary = parser.get_session_summary(project_name, session_id)
-    
+
     # Get session title
-    session_title = next((s['title'] for s in sessions if s['id'] == session_id), session_id)
+    session_title = next(
+        (s["title"] for s in sessions if s["id"] == session_id), session_id
+    )
 
     # Render markdown content and highlight search terms
     for message in conversation["messages"]:
@@ -605,12 +694,17 @@ async def conversation_view(
         "display_name": parser._format_project_name(project_name),
         "current_view": view,
         "projects": projects,
-        "sessions": sessions
+        "sessions": sessions,
     }
 
-    return templates.TemplateResponse("conversation.html", add_template_context(request, context))
+    return templates.TemplateResponse(
+        "conversation.html", add_template_context(request, context)
+    )
 
-@app.get("/api/conversation/{project_name}/{session_id}", response_model=ConversationResponse)
+
+@app.get(
+    "/api/conversation/{project_name}/{session_id}", response_model=ConversationResponse
+)
 async def get_conversation(
     project_name: str,
     session_id: str,
@@ -618,13 +712,13 @@ async def get_conversation(
     per_page: int = Query(50, le=200, ge=10),
     search: Optional[str] = Query(None),
     message_type: Optional[str] = Query(None),
-    view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")
+    view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$"),
 ):
     """API endpoint to get conversation data based on selected view"""
     parser = get_parser(view)
     sessions = parser.get_sessions(project_name)
 
-    if not any(s['id'] == session_id for s in sessions):
+    if not any(s["id"] == session_id for s in sessions):
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     conversation = parser.get_conversation(
@@ -633,8 +727,13 @@ async def get_conversation(
 
     return ConversationResponse(**conversation)
 
+
 @app.get("/search", response_class=HTMLResponse)
-async def search_view(request: Request, q: str = Query(..., min_length=1), view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$")):
+async def search_view(
+    request: Request,
+    q: str = Query(..., min_length=1),
+    view: str = Query("qwen", regex="^(qwen|claude|cursor|trae|kiro)$"),
+):
     """Search across all sessions in all projects based on selected view"""
     parser = get_parser(view)
 
@@ -650,9 +749,11 @@ async def search_view(request: Request, q: str = Query(..., min_length=1), view:
         for session in project_sessions:
             # Get the full conversation for this session with search
             conversation = parser.get_conversation(
-                project["name"], session["id"],
-                page=1, per_page=100,  # Get up to 100 messages per session
-                search=q  # Use the search query
+                project["name"],
+                session["id"],
+                page=1,
+                per_page=100,  # Get up to 100 messages per session
+                search=q,  # Use the search query
             )
 
             if conversation["messages"]:  # If there are matching messages
@@ -662,22 +763,27 @@ async def search_view(request: Request, q: str = Query(..., min_length=1), view:
                     if msg.get("content"):
                         msg["content"] = highlight_search_text(msg["content"], q)
 
-                search_results.append({
-                    "project": project,
-                    "session": session,
-                    "matching_messages_count": len(conversation["messages"]),
-                    "first_few_messages": first_messages
-                })
+                search_results.append(
+                    {
+                        "project": project,
+                        "session": session,
+                        "matching_messages_count": len(conversation["messages"]),
+                        "first_few_messages": first_messages,
+                    }
+                )
 
     context = {
         "request": request,
         "query": q,
         "results": search_results,
         "total_results": len(search_results),
-        "current_view": view
+        "current_view": view,
     }
 
-    return templates.TemplateResponse("search_results.html", add_template_context(request, context))
+    return templates.TemplateResponse(
+        "search_results.html", add_template_context(request, context)
+    )
+
 
 @app.get("/api/statistics")
 async def get_statistics():
@@ -693,7 +799,7 @@ async def get_statistics():
             stats[view_name] = {
                 "project_count": len(projects),
                 "session_count": session_count,
-                "available": True
+                "available": True,
             }
             total_sessions += session_count
         except Exception as e:
@@ -701,17 +807,20 @@ async def get_statistics():
                 "project_count": 0,
                 "session_count": 0,
                 "available": False,
-                "error": str(e)
+                "error": str(e),
             }
 
     return {
         "stats": stats,
         "total_sessions": total_sessions,
-        "total_projects": sum(s["project_count"] for s in stats.values())
+        "total_projects": sum(s["project_count"] for s in stats.values()),
     }
 
+
 @app.get("/api/search/global")
-async def global_search(q: str = Query(..., min_length=1), limit: int = Query(50, le=200, ge=1)):
+async def global_search(
+    q: str = Query(..., min_length=1), limit: int = Query(50, le=200, ge=1)
+):
     """Search across all IDEs and sessions"""
     search_results = []
 
@@ -731,9 +840,11 @@ async def global_search(q: str = Query(..., min_length=1), limit: int = Query(50
             for session in sessions:
                 try:
                     conversation = parser.get_conversation(
-                        project.get("name"), session.get("id"),
-                        page=1, per_page=100,
-                        search=q
+                        project.get("name"),
+                        session.get("id"),
+                        page=1,
+                        per_page=100,
+                        search=q,
                     )
                 except Exception:
                     continue
@@ -741,17 +852,23 @@ async def global_search(q: str = Query(..., min_length=1), limit: int = Query(50
                 if conversation.get("messages"):
                     first_messages = conversation["messages"][:3]
                     try:
-                        search_results.append({
-                            "view": view_name,
-                            "project_name": project.get("name"),
-                            "project_display_name": project.get("display_name", project.get("name")),
-                            "session_id": session.get("id"),
-                            "session_title": session.get("title", session.get("id")),
-                            "message_count": session.get("message_count", 0),
-                            "matching_count": len(conversation.get("messages", [])),
-                            "first_messages": first_messages,
-                            "modified": session.get("modified")
-                        })
+                        search_results.append(
+                            {
+                                "view": view_name,
+                                "project_name": project.get("name"),
+                                "project_display_name": project.get(
+                                    "display_name", project.get("name")
+                                ),
+                                "session_id": session.get("id"),
+                                "session_title": session.get(
+                                    "title", session.get("id")
+                                ),
+                                "message_count": session.get("message_count", 0),
+                                "matching_count": len(conversation.get("messages", [])),
+                                "first_messages": first_messages,
+                                "modified": session.get("modified"),
+                            }
+                        )
                     except Exception:
                         continue
 
@@ -759,11 +876,8 @@ async def global_search(q: str = Query(..., min_length=1), limit: int = Query(50
     valid_results = [r for r in search_results if r.get("modified")]
     valid_results.sort(key=lambda x: x["modified"], reverse=True)
 
-    return {
-        "results": valid_results[:limit],
-        "total": len(valid_results),
-        "query": q
-    }
+    return {"results": valid_results[:limit], "total": len(valid_results), "query": q}
+
 
 @app.get("/health")
 async def health_check():
@@ -774,11 +888,43 @@ async def health_check():
     trae_parser = get_parser("trae")
     kiro_parser = get_parser("kiro")
 
-    claude_path = os.environ.get("CLAUDE_PROJECTS_PATH", str(Path.home() / ".claude" / "projects"))
+    claude_path = os.environ.get(
+        "CLAUDE_PROJECTS_PATH", str(Path.home() / ".claude" / "projects")
+    )
     qwen_path = os.environ.get("QWEN_PROJECTS_PATH", str(Path.home() / ".qwen" / "tmp"))
-    cursor_path = os.environ.get("CURSOR_WORKSPACE_STORAGE_PATH", str(Path.home() / "Library" / "Application Support" / "Cursor" / "User" / "workspaceStorage"))
-    trae_path = os.environ.get("TRAE_WORKSPACE_STORAGE_PATH", str(Path.home() / "Library" / "Application Support" / "Trae" / "User" / "workspaceStorage"))
-    kiro_path = os.environ.get("KIRO_WORKSPACE_STORAGE_PATH", str(Path.home() / "Library" / "Application Support" / "Kiro" / "User" / "workspaceStorage"))
+    cursor_path = os.environ.get(
+        "CURSOR_WORKSPACE_STORAGE_PATH",
+        str(
+            Path.home()
+            / "Library"
+            / "Application Support"
+            / "Cursor"
+            / "User"
+            / "workspaceStorage"
+        ),
+    )
+    trae_path = os.environ.get(
+        "TRAE_WORKSPACE_STORAGE_PATH",
+        str(
+            Path.home()
+            / "Library"
+            / "Application Support"
+            / "Trae"
+            / "User"
+            / "workspaceStorage"
+        ),
+    )
+    kiro_path = os.environ.get(
+        "KIRO_WORKSPACE_STORAGE_PATH",
+        str(
+            Path.home()
+            / "Library"
+            / "Application Support"
+            / "Kiro"
+            / "User"
+            / "workspaceStorage"
+        ),
+    )
 
     claude_projects_exist = os.path.exists(claude_path)
     qwen_projects_exist = os.path.exists(qwen_path)
@@ -790,6 +936,7 @@ async def health_check():
     kiro_key_samples = []
     if trae_projects_exist:
         import sqlite3
+
         base = trae_path
         for pr in trae_parser.get_projects()[:5]:
             state_db = os.path.join(base, pr["name"], "state.vscdb")
@@ -804,6 +951,7 @@ async def health_check():
                 trae_key_samples.append({"project": pr["display_name"], "key": key})
     if kiro_projects_exist:
         import sqlite3
+
         base = kiro_path
         for pr in kiro_parser.get_projects()[:5]:
             state_db = os.path.join(base, pr["name"], "state.vscdb")
@@ -828,22 +976,35 @@ async def health_check():
         "cursor_workspace_directory_exists": cursor_projects_exist,
         "trae_workspace_directory_exists": trae_projects_exist,
         "kiro_workspace_directory_exists": kiro_projects_exist,
-        "claude_projects_count": len(claude_parser.get_projects()) if claude_projects_exist else 0,
-        "qwen_projects_count": len(qwen_parser.get_projects()) if qwen_projects_exist else 0,
-        "cursor_projects_count": len(cursor_parser.get_projects()) if cursor_projects_exist else 0,
-        "trae_projects_count": len(trae_parser.get_projects()) if trae_projects_exist else 0,
-        "kiro_projects_count": len(kiro_parser.get_projects()) if kiro_projects_exist else 0,
-        "total_projects_count": (len(claude_parser.get_projects()) if claude_projects_exist else 0) +
-                                (len(qwen_parser.get_projects()) if qwen_projects_exist else 0) +
-                                (len(cursor_parser.get_projects()) if cursor_projects_exist else 0) +
-                                (len(trae_parser.get_projects()) if trae_projects_exist else 0) +
-                                (len(kiro_parser.get_projects()) if kiro_projects_exist else 0),
+        "claude_projects_count": (
+            len(claude_parser.get_projects()) if claude_projects_exist else 0
+        ),
+        "qwen_projects_count": (
+            len(qwen_parser.get_projects()) if qwen_projects_exist else 0
+        ),
+        "cursor_projects_count": (
+            len(cursor_parser.get_projects()) if cursor_projects_exist else 0
+        ),
+        "trae_projects_count": (
+            len(trae_parser.get_projects()) if trae_projects_exist else 0
+        ),
+        "kiro_projects_count": (
+            len(kiro_parser.get_projects()) if kiro_projects_exist else 0
+        ),
+        "total_projects_count": (
+            len(claude_parser.get_projects()) if claude_projects_exist else 0
+        )
+        + (len(qwen_parser.get_projects()) if qwen_projects_exist else 0)
+        + (len(cursor_parser.get_projects()) if cursor_projects_exist else 0)
+        + (len(trae_parser.get_projects()) if trae_projects_exist else 0)
+        + (len(kiro_parser.get_projects()) if kiro_projects_exist else 0),
         "trae_key_samples": trae_key_samples,
-        "kiro_key_samples": kiro_key_samples
+        "kiro_key_samples": kiro_key_samples,
     }
 
 
 # ==================== Favorites API Routes ====================
+
 
 @app.post("/api/favorites", response_model=Dict[str, Any])
 async def create_favorite(request: CreateFavoriteRequest):
@@ -864,13 +1025,15 @@ async def create_favorite(request: CreateFavoriteRequest):
             content_preview=request.content_preview,
             message_line=request.message_line,
             message_hash=message_hash,
-            tags=request.tags
+            tags=request.tags,
         )
 
         return {"success": True, "favorite_id": favorite_id}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to create favorite: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to create favorite: {str(e)}"
+        )
 
 
 @app.get("/api/favorites", response_model=FavoritesListResponse)
@@ -882,7 +1045,7 @@ async def get_favorites(
     search: Optional[str] = Query(None),
     limit: int = Query(100, le=1000),
     offset: int = Query(0, ge=0),
-    include_stats: bool = Query(False)
+    include_stats: bool = Query(False),
 ):
     """Get favorites with filters"""
     try:
@@ -893,43 +1056,45 @@ async def get_favorites(
             tag=tag,
             search=search,
             limit=limit,
-            offset=offset
+            offset=offset,
         )
 
         # Convert to Pydantic models
         favorite_models = []
         for fav in favorites:
             # Convert tags to TagModel
-            tag_models = [TagModel(**t) for t in fav.get('tags', [])]
+            tag_models = [TagModel(**t) for t in fav.get("tags", [])]
 
-            favorite_models.append(FavoriteModel(
-                id=fav['id'],
-                type=fav['type'],
-                view=fav['view'],
-                project_name=fav['project_name'],
-                session_id=fav['session_id'],
-                message_line=fav.get('message_line'),
-                message_hash=fav.get('message_hash'),
-                title=fav['title'],
-                annotation=fav.get('annotation'),
-                content_preview=fav.get('content_preview'),
-                tags=tag_models,
-                created_at=fav['created_at'],
-                updated_at=fav['updated_at']
-            ))
+            favorite_models.append(
+                FavoriteModel(
+                    id=fav["id"],
+                    type=fav["type"],
+                    view=fav["view"],
+                    project_name=fav["project_name"],
+                    session_id=fav["session_id"],
+                    message_line=fav.get("message_line"),
+                    message_hash=fav.get("message_hash"),
+                    title=fav["title"],
+                    annotation=fav.get("annotation"),
+                    content_preview=fav.get("content_preview"),
+                    tags=tag_models,
+                    created_at=fav["created_at"],
+                    updated_at=fav["updated_at"],
+                )
+            )
 
         statistics = None
         if include_stats:
             statistics = favorites_db.get_statistics()
 
         return FavoritesListResponse(
-            favorites=favorite_models,
-            total=len(favorite_models),
-            statistics=statistics
+            favorites=favorite_models, total=len(favorite_models), statistics=statistics
         )
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get favorites: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get favorites: {str(e)}"
+        )
 
 
 @app.get("/api/favorites/statistics")
@@ -939,7 +1104,9 @@ async def get_favorites_statistics():
         return favorites_db.get_statistics()
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get statistics: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to get statistics: {str(e)}"
+        )
 
 
 @app.get("/api/favorites/check/{view}/{project_name}/{session_id}")
@@ -947,7 +1114,7 @@ async def check_favorite_exists(
     view: str,
     project_name: str,
     session_id: str,
-    message_line: Optional[int] = Query(None)
+    message_line: Optional[int] = Query(None),
 ):
     """Check if a favorite exists"""
     try:
@@ -955,16 +1122,15 @@ async def check_favorite_exists(
             view=view,
             project_name=project_name,
             session_id=session_id,
-            message_line=message_line
+            message_line=message_line,
         )
 
-        return {
-            "exists": favorite_id is not None,
-            "favorite_id": favorite_id
-        }
+        return {"exists": favorite_id is not None, "favorite_id": favorite_id}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to check favorite: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to check favorite: {str(e)}"
+        )
 
 
 @app.get("/api/tags", response_model=List[TagModel])
@@ -986,22 +1152,22 @@ async def get_favorite(favorite_id: str):
         if not fav:
             raise HTTPException(status_code=404, detail="Favorite not found")
 
-        tag_models = [TagModel(**t) for t in fav.get('tags', [])]
+        tag_models = [TagModel(**t) for t in fav.get("tags", [])]
 
         return FavoriteModel(
-            id=fav['id'],
-            type=fav['type'],
-            view=fav['view'],
-            project_name=fav['project_name'],
-            session_id=fav['session_id'],
-            message_line=fav.get('message_line'),
-            message_hash=fav.get('message_hash'),
-            title=fav['title'],
-            annotation=fav.get('annotation'),
-            content_preview=fav.get('content_preview'),
+            id=fav["id"],
+            type=fav["type"],
+            view=fav["view"],
+            project_name=fav["project_name"],
+            session_id=fav["session_id"],
+            message_line=fav.get("message_line"),
+            message_hash=fav.get("message_hash"),
+            title=fav["title"],
+            annotation=fav.get("annotation"),
+            content_preview=fav.get("content_preview"),
             tags=tag_models,
-            created_at=fav['created_at'],
-            updated_at=fav['updated_at']
+            created_at=fav["created_at"],
+            updated_at=fav["updated_at"],
         )
 
     except HTTPException:
@@ -1027,7 +1193,9 @@ async def update_favorite(favorite_id: str, request: UpdateFavoriteRequest):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to update favorite: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to update favorite: {str(e)}"
+        )
 
 
 @app.delete("/api/favorites/{favorite_id}", response_model=Dict[str, Any])
@@ -1043,20 +1211,22 @@ async def delete_favorite(favorite_id: str):
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to delete favorite: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to delete favorite: {str(e)}"
+        )
 
 
 @app.get("/favorites", response_class=HTMLResponse)
 async def favorites_page(request: Request):
     """Favorites page"""
-    context = {
-        "request": request,
-        "current_view": "favorites"
-    }
-    return templates.TemplateResponse("favorites.html", add_template_context(request, context))
+    context = {"request": request, "current_view": "favorites"}
+    return templates.TemplateResponse(
+        "favorites.html", add_template_context(request, context)
+    )
 
 
 # ==================== Cache Management API Routes ====================
+
 
 @app.get("/api/cache/stats")
 async def get_cache_statistics():
@@ -1081,5 +1251,5 @@ async def clear_cache(cache_type: Optional[str] = Query(None)):
         clear_all_caches()
     else:
         raise HTTPException(status_code=400, detail=f"Unknown cache type: {cache_type}")
-    
+
     return {"success": True, "message": f"Cache cleared: {cache_type or 'all'}"}

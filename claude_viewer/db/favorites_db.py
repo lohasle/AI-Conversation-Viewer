@@ -36,7 +36,8 @@ class FavoritesDB:
         cursor = self.conn.cursor()
 
         # Favorites table
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS favorites (
                 id TEXT PRIMARY KEY,
                 type TEXT NOT NULL CHECK(type IN ('session', 'message')),
@@ -51,10 +52,12 @@ class FavoritesDB:
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+        """
+        )
 
         # Tags table
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS tags (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT UNIQUE NOT NULL,
@@ -62,10 +65,12 @@ class FavoritesDB:
                 is_auto BOOLEAN DEFAULT 0,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
-        """)
+        """
+        )
 
         # Favorite-Tag relationship table
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS favorite_tags (
                 favorite_id TEXT NOT NULL,
                 tag_id INTEGER NOT NULL,
@@ -73,22 +78,39 @@ class FavoritesDB:
                 FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE,
                 PRIMARY KEY (favorite_id, tag_id)
             )
-        """)
+        """
+        )
 
         # Create indexes for better query performance
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorites_view ON favorites(view)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorites_project ON favorites(project_name)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorites_created ON favorites(created_at DESC)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorites_type ON favorites(type)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorites_session ON favorites(session_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorites_composite ON favorites(view, project_name, session_id)")
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_favorites_view ON favorites(view)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_favorites_project ON favorites(project_name)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_favorites_created ON favorites(created_at DESC)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_favorites_type ON favorites(type)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_favorites_session ON favorites(session_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_favorites_composite ON favorites(view, project_name, session_id)"
+        )
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorite_tags_favorite ON favorite_tags(favorite_id)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_favorite_tags_tag ON favorite_tags(tag_id)")
-        
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_favorite_tags_favorite ON favorite_tags(favorite_id)"
+        )
+        cursor.execute(
+            "CREATE INDEX IF NOT EXISTS idx_favorite_tags_tag ON favorite_tags(tag_id)"
+        )
+
         # Enable WAL mode for better concurrent access
         cursor.execute("PRAGMA journal_mode=WAL")
-        
+
         # Optimize SQLite settings
         cursor.execute("PRAGMA synchronous=NORMAL")
         cursor.execute("PRAGMA cache_size=-64000")  # 64MB cache
@@ -99,7 +121,7 @@ class FavoritesDB:
     @staticmethod
     def generate_message_hash(content: str) -> str:
         """Generate a stable hash for message content"""
-        return hashlib.sha256(content.encode('utf-8')).hexdigest()[:16]
+        return hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
 
     def add_favorite(
         self,
@@ -112,7 +134,7 @@ class FavoritesDB:
         content_preview: Optional[str] = None,
         message_line: Optional[int] = None,
         message_hash: Optional[str] = None,
-        tags: Optional[List[str]] = None
+        tags: Optional[List[str]] = None,
     ) -> str:
         """
         Add a new favorite
@@ -135,24 +157,38 @@ class FavoritesDB:
         favorite_id = str(uuid.uuid4())
         cursor = self.conn.cursor()
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO favorites (
                 id, type, view, project_name, session_id,
                 message_line, message_hash, title, annotation, content_preview
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            favorite_id, favorite_type, view, project_name, session_id,
-            message_line, message_hash, title, annotation, content_preview
-        ))
+        """,
+            (
+                favorite_id,
+                favorite_type,
+                view,
+                project_name,
+                session_id,
+                message_line,
+                message_hash,
+                title,
+                annotation,
+                content_preview,
+            ),
+        )
 
         # Add tags
         if tags:
             for tag_name in tags:
                 tag_id = self._get_or_create_tag(tag_name)
-                cursor.execute("""
+                cursor.execute(
+                    """
                     INSERT OR IGNORE INTO favorite_tags (favorite_id, tag_id)
                     VALUES (?, ?)
-                """, (favorite_id, tag_id))
+                """,
+                    (favorite_id, tag_id),
+                )
 
         self.conn.commit()
         return favorite_id
@@ -184,11 +220,14 @@ class FavoritesDB:
             True if updated, False if not found
         """
         cursor = self.conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE favorites
             SET annotation = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        """, (annotation, favorite_id))
+        """,
+            (annotation, favorite_id),
+        )
         self.conn.commit()
         return cursor.rowcount > 0
 
@@ -203,20 +242,28 @@ class FavoritesDB:
         cursor = self.conn.cursor()
 
         # Remove existing tags
-        cursor.execute("DELETE FROM favorite_tags WHERE favorite_id = ?", (favorite_id,))
+        cursor.execute(
+            "DELETE FROM favorite_tags WHERE favorite_id = ?", (favorite_id,)
+        )
 
         # Add new tags
         for tag_name in tags:
             tag_id = self._get_or_create_tag(tag_name)
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO favorite_tags (favorite_id, tag_id)
                 VALUES (?, ?)
-            """, (favorite_id, tag_id))
+            """,
+                (favorite_id, tag_id),
+            )
 
-        cursor.execute("""
+        cursor.execute(
+            """
             UPDATE favorites SET updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        """, (favorite_id,))
+        """,
+            (favorite_id,),
+        )
 
         self.conn.commit()
 
@@ -228,7 +275,7 @@ class FavoritesDB:
         tag: Optional[str] = None,
         search: Optional[str] = None,
         limit: Optional[int] = None,
-        offset: int = 0
+        offset: int = 0,
     ) -> List[Dict[str, Any]]:
         """
         Get favorites with filters
@@ -286,7 +333,7 @@ class FavoritesDB:
         favorites = []
         for row in cursor.fetchall():
             favorite = dict(row)
-            favorite['tags'] = self._get_favorite_tags(favorite['id'])
+            favorite["tags"] = self._get_favorite_tags(favorite["id"])
             favorites.append(favorite)
 
         return favorites
@@ -299,7 +346,7 @@ class FavoritesDB:
 
         if row:
             favorite = dict(row)
-            favorite['tags'] = self._get_favorite_tags(favorite_id)
+            favorite["tags"] = self._get_favorite_tags(favorite_id)
             return favorite
         return None
 
@@ -308,7 +355,7 @@ class FavoritesDB:
         view: str,
         project_name: str,
         session_id: str,
-        message_line: Optional[int] = None
+        message_line: Optional[int] = None,
     ) -> Optional[str]:
         """
         Check if a favorite already exists
@@ -319,29 +366,37 @@ class FavoritesDB:
         cursor = self.conn.cursor()
 
         if message_line is not None:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT id FROM favorites
                 WHERE view = ? AND project_name = ? AND session_id = ? AND message_line = ?
-            """, (view, project_name, session_id, message_line))
+            """,
+                (view, project_name, session_id, message_line),
+            )
         else:
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT id FROM favorites
                 WHERE view = ? AND project_name = ? AND session_id = ? AND type = 'session'
-            """, (view, project_name, session_id))
+            """,
+                (view, project_name, session_id),
+            )
 
         row = cursor.fetchone()
-        return row['id'] if row else None
+        return row["id"] if row else None
 
     def get_all_tags(self) -> List[Dict[str, Any]]:
         """Get all tags with usage count"""
         cursor = self.conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT t.*, COUNT(ft.favorite_id) as usage_count
             FROM tags t
             LEFT JOIN favorite_tags ft ON t.id = ft.tag_id
             GROUP BY t.id
             ORDER BY usage_count DESC, t.name ASC
-        """)
+        """
+        )
         return [dict(row) for row in cursor.fetchall()]
 
     def get_statistics(self) -> Dict[str, Any]:
@@ -350,36 +405,44 @@ class FavoritesDB:
 
         # Total count
         cursor.execute("SELECT COUNT(*) as total FROM favorites")
-        total = cursor.fetchone()['total']
+        total = cursor.fetchone()["total"]
 
         # By type
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT type, COUNT(*) as count FROM favorites GROUP BY type
-        """)
-        by_type = {row['type']: row['count'] for row in cursor.fetchall()}
+        """
+        )
+        by_type = {row["type"]: row["count"] for row in cursor.fetchall()}
 
         # By IDE
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT view, COUNT(*) as count FROM favorites GROUP BY view
-        """)
-        by_view = {row['view']: row['count'] for row in cursor.fetchall()}
+        """
+        )
+        by_view = {row["view"]: row["count"] for row in cursor.fetchall()}
 
         # Top tags
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT t.name, COUNT(ft.favorite_id) as count
             FROM tags t
             JOIN favorite_tags ft ON t.id = ft.tag_id
             GROUP BY t.id
             ORDER BY count DESC
             LIMIT 10
-        """)
-        top_tags = [{'name': row['name'], 'count': row['count']} for row in cursor.fetchall()]
+        """
+        )
+        top_tags = [
+            {"name": row["name"], "count": row["count"]} for row in cursor.fetchall()
+        ]
 
         return {
-            'total': total,
-            'by_type': by_type,
-            'by_view': by_view,
-            'top_tags': top_tags
+            "total": total,
+            "by_type": by_type,
+            "by_view": by_view,
+            "top_tags": top_tags,
         }
 
     def _get_or_create_tag(self, tag_name: str, color: Optional[str] = None) -> int:
@@ -390,21 +453,30 @@ class FavoritesDB:
         row = cursor.fetchone()
 
         if row:
-            return row['id']
+            return row["id"]
 
         # Auto-assign color if not provided
         if color is None:
             colors = [
-                '#3b82f6', '#8b5cf6', '#ec4899', '#f59e0b',
-                '#10b981', '#14b8a6', '#f97316', '#6366f1'
+                "#3b82f6",
+                "#8b5cf6",
+                "#ec4899",
+                "#f59e0b",
+                "#10b981",
+                "#14b8a6",
+                "#f97316",
+                "#6366f1",
             ]
             cursor.execute("SELECT COUNT(*) as count FROM tags")
-            count = cursor.fetchone()['count']
+            count = cursor.fetchone()["count"]
             color = colors[count % len(colors)]
 
-        cursor.execute("""
+        cursor.execute(
+            """
             INSERT INTO tags (name, color) VALUES (?, ?)
-        """, (tag_name, color))
+        """,
+            (tag_name, color),
+        )
         self.conn.commit()
 
         return cursor.lastrowid
@@ -412,12 +484,15 @@ class FavoritesDB:
     def _get_favorite_tags(self, favorite_id: str) -> List[Dict[str, Any]]:
         """Get all tags for a favorite"""
         cursor = self.conn.cursor()
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT t.* FROM tags t
             JOIN favorite_tags ft ON t.id = ft.tag_id
             WHERE ft.favorite_id = ?
             ORDER BY t.name
-        """, (favorite_id,))
+        """,
+            (favorite_id,),
+        )
         return [dict(row) for row in cursor.fetchall()]
 
     def close(self):
