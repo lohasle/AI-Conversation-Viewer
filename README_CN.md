@@ -92,25 +92,35 @@ aicode-viewer --host 0.0.0.0 --port 3000
 
 ## 📸 界面截图
 
-### 主面板 - Claude 视图
-浏览所有 Claude Code 项目，查看会话数量和详细统计信息。
+### 主界面 - 多 IDE 导航
+浏览和导航多个 AI 平台，包括 Claude、通义千问、Cursor、Trae 和 Kiro。实时查看所有支持的 IDE 对话历史，快速切换平台视图。
 
-![Claude 主面板](img/claude_index.png)
+![主界面](img/index.png)
 
-### 主面板 - 通义千问视图
-无缝切换不同 AI 平台，查看对话历史记录。
+### Claude 对话查看器
+实时对话查看，支持语法高亮、Markdown 渲染和工具调用可视化。查看详细对话历史，格式美观，代码高亮清晰。
 
-![通义千问主面板](img/qwen_index.png)
+![Claude 视图](img/view_claude.png)
 
-### 对话详情
-查看对话内容，包含格式化、语法高亮和搜索功能。
+### 全局搜索界面
+强大的搜索功能，跨所有对话和平台搜索。全局搜索即时显示结果，快速导航到任意会话。
 
-![对话视图](img/session_detail.png)
+![搜索页面](img/search_page.png)
 
-### 全局搜索
-跨所有对话和项目搜索，即时显示结果。
+### 搜索结果详情
+详细的搜索结果，带上下文高亮和预览。高效浏览搜索结果，关键词高亮显示。
 
-![搜索结果](img/agent.png)
+![搜索详情](img/search_detail.png)
+
+### 收藏管理
+保存和管理您喜爱的对话和消息。使用标签组织，添加注释，按 IDE 平台或类型筛选。
+
+![收藏功能](img/favorites.png)
+
+### X-IDE 模式
+强大的 X-IDE 模式，提供增强的生产力功能。体验下一代 AI 对话管理。
+
+![X-IDE 模式](img/x_idea_model.png)
 
 ## 🛠️ 命令行选项
 

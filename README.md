@@ -136,25 +136,35 @@ For detailed information, see:
 
 ## 📸 Screenshots
 
-### Main Dashboard - Claude View
-Browse all your Claude Code projects with session counts and detailed statistics.
+### Main Dashboard - Multi-IDE Navigation
+Browse and navigate across multiple AI platforms including Claude, Qwen, Cursor, Trae, and Kiro. Real-time viewing of conversation history from all supported IDEs with quick platform switcher.
 
-![Claude Main Dashboard](img/claude_index.png)
+![Main Dashboard](img/index.png)
 
-### Main Dashboard - Qwen View
-Seamlessly switch between different AI platforms to view their conversation histories.
+### Claude Conversation Viewer
+Real-time conversation viewing with syntax highlighting, markdown rendering, and tool use visualization. View detailed conversation history with proper formatting and code highlighting.
 
-![Qwen Main Dashboard](img/qwen_index.png)
+![Claude View](img/view_claude.png)
 
-### Conversation Details
-View conversations with proper formatting, syntax highlighting, and search capabilities.
+### Global Search Interface
+Powerful search functionality across all conversations and platforms. Search globally with instant results and quick navigation to any session.
 
-![Conversation View](img/session_detail.png)
+![Search Page](img/search_page.png)
 
-### Global Search
-Search across all conversations and projects with instant results.
+### Search Results Detail
+Detailed search results with context highlighting and preview. Navigate through search results efficiently with keyword highlighting.
 
-![Search Results](img/agent.png)
+![Search Detail](img/search_detail.png)
+
+### Favorites Management
+Save and manage your favorite conversations and messages. Organize with tags, add annotations, and filter by IDE platform or type.
+
+![Favorites](img/favorites.png)
+
+### X-IDE Mode
+Advanced X-IDE mode with powerful features for enhanced productivity. Experience the next level of AI conversation management.
+
+![X-IDE Mode](img/x_idea_model.png)
 
 ## 🛠️ Command Line Options
 
